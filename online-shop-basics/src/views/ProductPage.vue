@@ -7,7 +7,7 @@ const products = useProductsList();
 const cart = useCart();
 const route = useRoute();
 
-import Navigation from "./Navigation.vue";
+import Navigation from "@/components/Navigation.vue";
 
 const id = route.params.id;
 

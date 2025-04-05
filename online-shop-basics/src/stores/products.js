@@ -76,7 +76,8 @@ export const useProductsList = defineStore("products", {
     getId(name) {
       const existingItem = this.list.find((x) => x.name === name);
 
-      if (existingItem) return existingItem.description;
+      if (existingItem) return existingItem.id;
+      else return "no item found";
     },
   },
 });
