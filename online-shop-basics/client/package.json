@@ -10,6 +10,12 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.0.17",
+    "axios": "^1.8.4",
+    "browserify": "^17.0.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "mongodb": "^6.15.0",
+    "mongoose": "^8.13.2",
     "nanoid": "^5.1.5",
     "pinia": "^3.0.1",
     "pinia-plugin-persistedstate": "^4.2.0",
