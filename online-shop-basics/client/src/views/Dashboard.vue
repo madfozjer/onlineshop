@@ -182,10 +182,7 @@ const formFilled = () => {
         reset products list
       </button>
       <button
-        @click="
-          log(JSON.stringify(products.getList()), 'white');
-          console.log(products.getList());
-        "
+        @click="log(JSON.stringify(products.getList()), 'white')"
         class="ml-4 hover:cursor-pointer"
       >
         get list

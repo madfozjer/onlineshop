@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import axios from "axios";
 
 export const useProductsList = defineStore("products", {
   persist: true,
@@ -30,15 +31,18 @@ export const useProductsList = defineStore("products", {
     };
   },
   actions: {
-    resetStore() {
+    async resetStore() {
       this.list = [];
+      const data = await this.deleteAPI("clearproducts");
       this.initStore();
+      console.log(data);
     },
     initStore() {
       // some test data
       if (this.list[0] == undefined) {
         this.defaultList.forEach((element) => {
           this.list.push(element);
+          this.postProduct(element);
         });
       }
     },
@@ -58,7 +62,9 @@ export const useProductsList = defineStore("products", {
     getLength() {
       return this.list.length;
     },
-    getList() {
+    async getList() {
+      const data = await this.getAPI("listproducts");
+      console.log(data);
       return this.list;
     },
     deleteItem(id) {
@@ -78,6 +84,57 @@ export const useProductsList = defineStore("products", {
 
       if (existingItem) return existingItem.id;
       else return "no item found";
+    },
+    async postProduct(body) {
+      try {
+        const response = await axios.post(
+          "http://localhost:5000/api/newproduct",
+          {
+            body,
+          }
+        );
+
+        console.log("Document inserted:", response.data);
+        console.log(this.getAPI("listproducts"));
+      } catch (error) {
+        console.error(
+          "Error inserting document:",
+          error.response ? error.response.data : error.message
+        );
+      }
+    },
+    async getAPI(call) {
+      //listproducts
+      try {
+        const response = await fetch(`api/${call}`);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        return result;
+      } catch (error) {
+        console.error(`Get call ${call} is unsuccesful.`, error);
+        return null;
+      }
+    },
+    async deleteAPI(call) {
+      try {
+        const response = await fetch(`http://localhost:5000/api/${call}`, {
+          method: "DELETE",
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        return result;
+      } catch (error) {
+        console.error(`Delete call ${call} is unsuccessful.`, error);
+        return null;
+      }
     },
   },
 });

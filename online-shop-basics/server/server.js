@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
 import path from "path";
-import { fileURLToPath } from "url";
+import api from "./api.js";
 
 // Load .env variables
 dotenv.config();
@@ -15,11 +15,6 @@ const app = express();
 app.use(cors());
 app.use(express.json()); // to parse JSON bodies
 
-// API Routes
-app.get("/api/health", (req, res) => {
-  res.json({ message: "API is running ✅" });
-});
-
 // MongoDB connection
 mongoose
   .connect(process.env.MONGODB_URI, {
@@ -29,10 +24,7 @@ mongoose
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// Serve API routes (this can be more routes, like '/api/products', etc.)
-app.get("/api/products", (req, res) => {
-  res.json([{ id: 1, name: "Sample Product" }]);
-});
+api(app, process.env.MONGODB_URI);
 
 // Serve the frontend during production
 if (process.env.NODE_ENV === "production") {
