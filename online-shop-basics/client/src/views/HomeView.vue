@@ -6,7 +6,6 @@ import router from "@/router/router";
 import { useProductsList } from "@/stores/products";
 
 const products = useProductsList();
-products.initStore();
 const list = products.getList();
 
 const filteredProducts = ref([]);

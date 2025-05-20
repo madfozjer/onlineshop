@@ -3,7 +3,8 @@ import App from "./src/App.vue";
 import router from "@/router/router";
 import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
 import { createPinia } from "pinia";
-import axios from "axios";
+import { useProductsList } from "@/stores/products";
+import { useCart } from "@/stores/cart";
 
 const pinia = createPinia();
 const app = createApp(App);
@@ -12,6 +13,10 @@ pinia.use(piniaPluginPersistedstate);
 app.use(pinia);
 app.use(router);
 app.mount("#app");
+const products = useProductsList();
+products.initStore();
+const cart = useCart();
+cart.loadFromStorage();
 
 /*
 try {
@@ -27,13 +32,3 @@ try {
     error.response ? error.response.data : error.message
   );
 }*/
-
-var products = {};
-
-fetch("api/listproducts")
-  .then((response) => response.json())
-  .then((data) => (products = data.documents))
-  .then(() => console.log(products))
-  .catch((error) => {
-    console.error(error);
-  });

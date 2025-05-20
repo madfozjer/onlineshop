@@ -43,5 +43,6 @@ const product = {
   parameters: props.parameters,
   price: props.price,
   image: props.image,
+  id: props.id,
 };
 </script>

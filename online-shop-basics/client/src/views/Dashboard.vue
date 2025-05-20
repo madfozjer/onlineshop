@@ -4,7 +4,9 @@ import { nanoid } from "nanoid";
 import { ref, watch } from "vue";
 import Product from "@/components/DashboardProduct.vue";
 import { RouterLink } from "vue-router";
+import { useCart } from "@/stores/cart";
 const products = useProductsList();
+const cart = useCart();
 
 const newItem = ref({
   index: products.getLength(),
@@ -175,6 +177,7 @@ const formFilled = () => {
       <button
         @click="
           products.resetStore();
+          cart.saveToStorage();
           log('Store has been reseted!', 'red');
         "
         class="hover:cursor-pointer"
@@ -182,7 +185,10 @@ const formFilled = () => {
         reset products list
       </button>
       <button
-        @click="log(JSON.stringify(products.getList()), 'white')"
+        @click="
+          log(JSON.stringify(products.getList()), 'white');
+          console.log(products.getList());
+        "
         class="ml-4 hover:cursor-pointer"
       >
         get list

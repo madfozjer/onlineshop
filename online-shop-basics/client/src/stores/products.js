@@ -35,7 +35,6 @@ export const useProductsList = defineStore("products", {
       this.list = [];
       const data = await this.deleteAPI("clearproducts");
       this.initStore();
-      console.log(data);
     },
     initStore() {
       // some test data
@@ -55,6 +54,9 @@ export const useProductsList = defineStore("products", {
         return 404;
       }
     },
+    syncWithDB() {
+      //get data from db. db state priority.
+    },
     addItem(object) {
       this.list.push(object);
       return `Item ${object.name} has been added`;
@@ -62,9 +64,7 @@ export const useProductsList = defineStore("products", {
     getLength() {
       return this.list.length;
     },
-    async getList() {
-      const data = await this.getAPI("listproducts");
-      console.log(data);
+    getList() {
       return this.list;
     },
     deleteItem(id) {
