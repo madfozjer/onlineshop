@@ -28,6 +28,8 @@ export const useProductsList = defineStore("products", {
           description: `Bring the magic and the munchies together with the Disney Pizza Vintage T-Shirt. Featuring a retro-inspired graphic that blends beloved Disney charm with everyone's favorite food, this tee is made from ultra-soft cotton and designed for a relaxed, lived-in feel. Perfect for park days, pizza nights, or just repping your love for all things Disney.`,
         },
       ],
+      tags: ["tshirt", "t-shirt", "vintage", "retro", "cartoon"],
+      productNames: ["Autoboy Vintage T-Shirt", "Disney Pizza Vintage T-Shirt"],
     };
   },
   actions: {
@@ -59,6 +61,10 @@ export const useProductsList = defineStore("products", {
     },
     addItem(object) {
       this.list.push(object);
+      object.tags.forEach((tag) => {
+        this.tags.push(tag);
+      });
+      this.productNames.push(object.name);
       return `Item ${object.name} has been added`;
     },
     getLength() {
