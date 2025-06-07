@@ -11,7 +11,7 @@ export const useProductsList = defineStore("products", {
           index: 0,
           id: "pprD7",
           name: "Autoboy Vintage T-Shirt",
-          paramaters: ["M", "Good"],
+          paramaters: ["M", "White", "T-Shirt"],
           tags: ["tshirt", "t-shirt", "vintage", "retro"],
           price: 40.0,
           images: ["autoboy-tee1.jpg"],
@@ -21,7 +21,7 @@ export const useProductsList = defineStore("products", {
           index: 1,
           id: "no7OW",
           name: "Disney Pizza Vintage T-Shirt",
-          paramaters: ["S", "New"],
+          paramaters: ["S", "Red", "T-Shirt"],
           tags: ["tshirt", "t-shirt", "vintage", "retro", "cartoon"],
           price: 70.0,
           images: ["disney-pizza-tee1.jpg", "disney-pizza-tee-2.jpg"],
@@ -29,13 +29,18 @@ export const useProductsList = defineStore("products", {
         },
       ],
       tags: ["tshirt", "t-shirt", "vintage", "retro", "cartoon"],
+      params: {
+        colors: ["White", "Red", "Black"],
+        type: ["T-Shirt", "Jacket"],
+        sizes: ["S", "M"],
+      },
       productNames: ["Autoboy Vintage T-Shirt", "Disney Pizza Vintage T-Shirt"],
     };
   },
   actions: {
     async resetStore() {
       this.list = [];
-      const data = await this.deleteAPI("clearproducts");
+      this.deleteAPI("clearproducts");
       this.initStore();
     },
     initStore() {
@@ -100,8 +105,8 @@ export const useProductsList = defineStore("products", {
           }
         );
 
-        console.log("Document inserted:", response.data);
-        console.log(this.getAPI("listproducts"));
+        console.log(response.data);
+        console.log(await this.getAPI("listproducts"));
       } catch (error) {
         console.error(
           "Error inserting document:",
@@ -119,6 +124,7 @@ export const useProductsList = defineStore("products", {
         }
 
         const result = await response.json();
+        console.log(result);
         return result;
       } catch (error) {
         console.error(`Get call ${call} is unsuccesful.`, error);
@@ -136,6 +142,7 @@ export const useProductsList = defineStore("products", {
         }
 
         const result = await response.json();
+        console.log(result.message);
         return result;
       } catch (error) {
         console.error(`Delete call ${call} is unsuccessful.`, error);
