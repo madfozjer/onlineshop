@@ -1,7 +1,7 @@
 <script setup>
 import Product from "@/components/Product.vue";
 import Navigation from "@/components/Navigation.vue";
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import router from "@/router/router";
 import { useProductsList } from "@/stores/products";
 import { useCollections } from "@/stores/colections";
@@ -12,9 +12,11 @@ const collections = collectionsStore.collections;
 const list = products.getList();
 
 const packVisibility = ref([]);
-const itemsFiltered = ref(false);
 const filterActive = ref(false);
+const sortMenuActive = ref(false);
+const itemsFiltered = ref(false);
 
+var params = ref([]);
 collections.forEach((collection) => {
   packVisibility.value.push(true);
 });
@@ -48,6 +50,9 @@ function search(query) {
       searchTags.value.push(name);
     }
   });
+
+  itemsFiltered.value = true;
+
   return list.filter(
     (product) =>
       product.name.toLowerCase().includes(query.toLowerCase()) ||
@@ -55,27 +60,91 @@ function search(query) {
   );
 }
 
-function filter(param) {
-  if (itemsFiltered.value == true) {
-    itemsFiltered.value = false;
+function filterClick(type) {
+  if (params.value.includes(type)) {
+    params.value = params.value.filter((item) => item !== type);
   } else {
-    filteredProducts.value = list.filter((item) =>
-      item.paramaters.includes(param)
-    );
-
+    params.value.push(type);
     itemsFiltered.value = true;
+  }
+  filter();
+}
+
+function reverseSortBy(method, list) {
+  list.sort((a, b) => {
+    if (a[method] < b[method]) {
+      return 1;
+    }
+    if (a[method] > b[method]) {
+      return -1;
+    }
+    return 0;
+  });
+
+  return list;
+}
+
+function sortBy(method, list) {
+  list.sort((a, b) => {
+    if (a[method] < b[method]) {
+      return -1;
+    }
+    if (a[method] > b[method]) {
+      return 1;
+    }
+    return 0;
+  });
+
+  return list;
+}
+
+function sortProducts(method, list) {
+  switch (method) {
+    case "reverseName":
+      list = reverseSortBy("name", list);
+      break;
+    case "name":
+      list = sortBy("name", list);
+      break;
+    case "reversePrice":
+      list = reverseSortBy("price", list);
+      break;
+    case "price":
+      list = sortBy("price", list);
+      break;
+    default:
+      list = sortBy("name", list);
+  }
+}
+
+function filter() {
+  filteredProducts.value = list;
+
+  list.forEach((toRemove) => {
+    toRemove.paramaters.forEach((param) => {
+      if (params.value.includes(param)) {
+        filteredProducts.value = filteredProducts.value.filter(
+          (item) => item !== toRemove
+        );
+      }
+    });
+  });
+
+  if (params.value.length === 0) {
+    itemsFiltered.value = false;
   }
 }
 </script>
 
 <template>
+  <span v-if="searchWord == ''" @load="itemsFiltered = false"></span>
   <Navigation
     @new-search="receiveSearch"
     :res="searchTags"
     :home-access="true"
   />
   <div class="ml-8">
-    <div
+    <!--<div
       v-for="(pack, index) in collections"
       class="ml-6 mt-4"
       v-if="searchWord == ''"
@@ -112,11 +181,20 @@ function filter(param) {
         ></Product>
       </div>
     </div>
+  -->
     <button
       class="border-1 border-solid rounded-md text-3xl px-1 bg-blue-300 border-black m-4 -mb-2 hover:bg-blue-400 hover:cursor-pointer absolute"
       @click="filterActive = !filterActive"
+      v-if="!sortMenuActive"
     >
       =
+    </button>
+    <button
+      class="border-1 border-solid rounded-md text-3xl px-1 bg-green-300 border-black m-4 ml-14 mb-2 hover:bg-green-400 hover:cursor-pointer absolute"
+      @click="sortMenuActive = !sortMenuActive"
+      v-if="!filterActive"
+    >
+      sort
     </button>
     <div v-if="filterActive" class="border-1 rounded-md w-fit p-4 ml-4 mt-16">
       <span class="font-semibold text-xl">Colors:</span>
@@ -125,14 +203,80 @@ function filter(param) {
           v-for="color in products.params.colors"
           class="hover:font-semibold hover:cursor-pointer"
           :style="{ color: color != 'White' ? color : 'Purple' }"
-          @click="filter(color)"
+          @click="filterClick(color)"
+          ><input
+            type="checkbox"
+            :checked="!params.includes(color)"
+            class="hover:cursor-pointer"
+          />
+          {{ color }}</span
         >
-          - {{ color }}</span
+        <span class="font-semibold text-xl">Types:</span>
+        <span
+          v-for="type in products.params.types"
+          :style="{
+            color:
+              type == 'T-Shirt'
+                ? 'green'
+                : type == 'Jacket'
+                  ? 'darkblue'
+                  : null,
+          }"
+          class="hover:font-semibold hover:cursor-pointer"
+          @click="filterClick(type)"
+        >
+          <input
+            type="checkbox"
+            :checked="!params.includes(type)"
+            class="hover:cursor-pointer"
+          />
+          {{ type }}</span
         >
       </div>
+      <span class="font-semibold text-xl">Size:</span>
+      <span
+        v-for="size in products.params.sizes"
+        class="hover:font-semibold hover:cursor-pointer"
+        @click="filterClick(size)"
+      >
+        &nbsp;<input
+          type="checkbox"
+          :checked="!params.includes(size)"
+          class="hover:cursor-pointer"
+        />
+        {{ size }}</span
+      >
+    </div>
+    <div
+      v-if="sortMenuActive && !filterActive"
+      class="border-1 rounded-md w-fit p-4 ml-4 mt-16 flex flex-col gap-2"
+    >
+      <span
+        class="hover:font-semibold hover:cursor-pointer"
+        @click="sortProducts('name', list)"
+        >From A to Z</span
+      >
+
+      <span
+        class="hover:font-semibold hover:cursor-pointer"
+        @click="sortProducts('reverseName', list)"
+        >From Z to A</span
+      >
+
+      <span
+        class="hover:font-semibold hover:cursor-pointer"
+        @click="sortProducts('price', list)"
+        >From lowest to highest price</span
+      >
+
+      <span
+        class="hover:font-semibold hover:cursor-pointer"
+        @click="sortProducts('reversePrice', list)"
+        >From highest to lowest price</span
+      >
     </div>
     <Product
-      v-if="searchWord != '' || itemsFiltered"
+      v-if="itemsFiltered"
       v-for="(item, index) in filteredProducts"
       :name="item.name"
       :parameters="item.paramaters"
@@ -144,7 +288,7 @@ function filter(param) {
     <div class="border-t-1 border-dotted mr-8">
       <div>
         <Product
-          v-if="searchWord == '' && !itemsFiltered"
+          v-if="itemsFiltered == false"
           v-for="(item, index) in list"
           :name="item.name"
           :id="item.id"

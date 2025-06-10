@@ -31,7 +31,7 @@ export const useProductsList = defineStore("products", {
       tags: ["tshirt", "t-shirt", "vintage", "retro", "cartoon"],
       params: {
         colors: ["White", "Red", "Black"],
-        type: ["T-Shirt", "Jacket"],
+        types: ["T-Shirt", "Jacket"],
         sizes: ["S", "M"],
       },
       productNames: ["Autoboy Vintage T-Shirt", "Disney Pizza Vintage T-Shirt"],
