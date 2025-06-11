@@ -10,6 +10,7 @@ const products = useProductsList();
 const collectionsStore = useCollections();
 const collections = collectionsStore.collections;
 const list = products.getList();
+products.hashPassword();
 
 const packVisibility = ref([]);
 const filterActive = ref(false);
@@ -143,8 +144,8 @@ function filter() {
     :res="searchTags"
     :home-access="true"
   />
-  <div class="ml-8">
-    <!--<div
+  <div class="ml-8 flex flex-col">
+    <div
       v-for="(pack, index) in collections"
       class="ml-6 mt-4"
       v-if="searchWord == ''"
@@ -181,22 +182,29 @@ function filter() {
         ></Product>
       </div>
     </div>
-  -->
-    <button
-      class="border-1 border-solid rounded-md text-3xl px-1 bg-blue-300 border-black m-4 -mb-2 hover:bg-blue-400 hover:cursor-pointer absolute"
-      @click="filterActive = !filterActive"
-      v-if="!sortMenuActive"
-    >
-      =
-    </button>
-    <button
-      class="border-1 border-solid rounded-md text-3xl px-1 bg-green-300 border-black m-4 ml-14 mb-2 hover:bg-green-400 hover:cursor-pointer absolute"
-      @click="sortMenuActive = !sortMenuActive"
-      v-if="!filterActive"
-    >
-      sort
-    </button>
-    <div v-if="filterActive" class="border-1 rounded-md w-fit p-4 ml-4 mt-16">
+    <div class="flex gap-2 ml-4">
+      <button
+        class="border-1 border-solid rounded-md text-3xl px-1 bg-blue-300 border-black mt-4 hover:bg-blue-400 hover:cursor-pointer w-fit h-fit"
+        @click="if (!sortMenuActive) filterActive = !filterActive;"
+        :class="[
+          !sortMenuActive ? 'bg-blue-300' : 'bg-gray-300',
+          !sortMenuActive ? 'hover:bg-blue-400' : 'hover:bg-gray-400',
+        ]"
+      >
+        =
+      </button>
+      <button
+        class="border-1 border-solid rounded-md text-3xl px-1 border-black mt-4 hover:cursor-pointer hover:bg-green-500 w-fit"
+        @click="if (!filterActive) sortMenuActive = !sortMenuActive;"
+        :class="[
+          !filterActive ? 'bg-green-300' : 'bg-gray-300',
+          !filterActive ? 'hover:bg-green-400' : 'hover:bg-gray-400',
+        ]"
+      >
+        sort
+      </button>
+    </div>
+    <div v-if="filterActive" class="border-1 rounded-md w-fit p-4 ml-4 mt-2">
       <span class="font-semibold text-xl">Colors:</span>
       <div class="flex-col flex">
         <span
@@ -249,7 +257,7 @@ function filter() {
     </div>
     <div
       v-if="sortMenuActive && !filterActive"
-      class="border-1 rounded-md w-fit p-4 ml-4 mt-16 flex flex-col gap-2"
+      class="border-1 rounded-md w-fit p-4 flex flex-col gap-2 h-auto ml-4 mt-2"
     >
       <span
         class="hover:font-semibold hover:cursor-pointer"
@@ -275,17 +283,19 @@ function filter() {
         >From highest to lowest price</span
       >
     </div>
-    <Product
-      v-if="itemsFiltered"
-      v-for="(item, index) in filteredProducts"
-      :name="item.name"
-      :parameters="item.paramaters"
-      :price="item.price"
-      :id="item.id"
-      :image="item.images[0]"
-      @click="router.push(`/items/${item.id}`)"
-    />
-    <div class="border-t-1 border-dotted mr-8">
+    <div class="mt-2">
+      <Product
+        v-if="itemsFiltered"
+        v-for="(item, index) in filteredProducts"
+        :name="item.name"
+        :parameters="item.paramaters"
+        :price="item.price"
+        :id="item.id"
+        :image="item.images[0]"
+        @click="router.push(`/items/${item.id}`)"
+      />
+    </div>
+    <div class="border-t-1 border-dotted mr-8 mt-2">
       <div>
         <Product
           v-if="itemsFiltered == false"

@@ -114,6 +114,20 @@ export const useProductsList = defineStore("products", {
         );
       }
     },
+    async hashPassword() {
+      try {
+        const response = await axios.post("http://localhost:5000/api/login", {
+          password: "banachiki123",
+        });
+
+        console.log(response.data);
+      } catch (error) {
+        console.error(
+          "Error hashing password:",
+          error.response ? error.response.data : error.message
+        );
+      }
+    },
     async getAPI(call) {
       //listproducts
       try {

@@ -1,8 +1,43 @@
 import { MongoClient } from "mongodb";
+import bcrypt, { hash } from "bcrypt";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const userPassword = await hashPassword(process.env.DH_PASSWORD);
+
+async function hashPassword(password) {
+  return new Promise((resolve, reject) => {
+    bcrypt.hash(password, 10, function (err, hash) {
+      if (err) {
+        return reject(err);
+      }
+      resolve(hash);
+    });
+  });
+}
 
 export default function api(app, uri) {
   app.get("/api/health", (req, res) => {
     res.json({ message: "API is running ✅" });
+  });
+
+  app.post("/api/login", async (req, res) => {
+    try {
+      if (req.body.password) {
+        const inputPass = req.body.password;
+        const isMatch = bcrypt.compare(inputPass, userPassword);
+        if (await isMatch) {
+          res.status(200).json({ message: "You succesfully logged in" });
+          console.log("/api/login request was succesful");
+        } else {
+          throw new Error("Password was incorrect");
+        }
+      }
+    } catch (err) {
+      console.log("Request was aborted due to an error");
+      res.status(401).json({ message: err });
+    }
   });
 
   app.get("/api/listproducts", async (req, res) => {
