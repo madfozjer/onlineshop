@@ -10,7 +10,6 @@ const products = useProductsList();
 const collectionsStore = useCollections();
 const collections = collectionsStore.collections;
 const list = products.getList();
-products.hashPassword();
 
 const packVisibility = ref([]);
 const filterActive = ref(false);

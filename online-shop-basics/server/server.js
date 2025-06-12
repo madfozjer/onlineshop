@@ -15,6 +15,9 @@ const app = express();
 app.use(cors());
 app.use(express.json()); // to parse JSON bodies
 
+const secretKey = process.env.JWT_SECRET;
+const saltRounds = 10;
+
 // MongoDB connection
 mongoose
   .connect(process.env.MONGODB_URI, {

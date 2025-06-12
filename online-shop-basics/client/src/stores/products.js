@@ -35,6 +35,7 @@ export const useProductsList = defineStore("products", {
         sizes: ["S", "M"],
       },
       productNames: ["Autoboy Vintage T-Shirt", "Disney Pizza Vintage T-Shirt"],
+      token: "",
     };
   },
   actions: {
@@ -114,18 +115,33 @@ export const useProductsList = defineStore("products", {
         );
       }
     },
-    async hashPassword() {
+    async login(input) {
       try {
         const response = await axios.post("http://localhost:5000/api/login", {
-          password: "banachiki123",
+          password: input,
         });
 
         console.log(response.data);
+        localStorage.setItem("authToken", response.data.authToken);
+        return response.status;
       } catch (error) {
-        console.error(
-          "Error hashing password:",
-          error.response ? error.response.data : error.message
-        );
+        console.error("Error hashing password:", error.message);
+        return 401;
+      }
+    },
+    async auth() {
+      try {
+        const response = await axios.get("http://localhost:5000/api/auth", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        });
+
+        if (response.status == 200) return true;
+        else return false;
+      } catch (error) {
+        console.log(error);
+        return false;
       }
     },
     async getAPI(call) {
