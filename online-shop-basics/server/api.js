@@ -85,6 +85,34 @@ export default function api(app, uri) {
     res.status(200).json("You succesfuly auth");
   });
 
+  app.get("/api/getpaypalclientid", async (req, res) => {
+    try {
+      const paypalClientId = process.env.PAYPAL_CLIENT_ID;
+
+      if (!paypalClientId) {
+        res.setHeader("Content-Type", "application/json");
+        return res.status(500).send(
+          JSON.stringify({
+            message: "Server configuration error: PayPal Client ID is not set.",
+          })
+        );
+      }
+
+      const responseData = { data: paypalClientId };
+      res.setHeader("Content-Type", "application/json");
+      res.send(JSON.stringify(responseData));
+    } catch (error) {
+      res.setHeader("Content-Type", "application/json");
+      res.status(500).send(
+        JSON.stringify({
+          message: "An internal server error occurred.",
+          error:
+            process.env.NODE_ENV === "development" ? error.message : undefined,
+        })
+      );
+    }
+  });
+
   app.get("/api/listproducts", async (req, res) => {
     const client = new MongoClient(uri);
 

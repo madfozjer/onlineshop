@@ -145,9 +145,13 @@ export const useProductsList = defineStore("products", {
       }
     },
     async getAPI(call) {
-      //listproducts
+      //listproducts, getpaypalclientid
       try {
-        const response = await fetch(`api/${call}`);
+        const response = await fetch(`http://localhost:5000/api/${call}`, {
+          headers: {
+            Accept: "application/json",
+          },
+        });
 
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
