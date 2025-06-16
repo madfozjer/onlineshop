@@ -158,7 +158,6 @@ export const useProductsList = defineStore("products", {
         }
 
         const result = await response.json();
-        console.log(result);
         return result;
       } catch (error) {
         console.error(`Get call ${call} is unsuccesful.`, error);

@@ -13,24 +13,6 @@ import Navigation from "@/components/Navigation.vue";
 const id = route.params.id;
 
 const product = products.getItem(id) != 404 ? products.getItem(id) : undefined;
-function handlePaymentSuccess(details) {
-  this.paymentStatus = `Payment successful! Order ID: ${details.id}`;
-  this.paymentStatusClass = "success";
-  console.log("Payment successful details in App.vue:", details);
-  // Here you would typically update your backend, fulfill the order, etc.
-}
-
-function handlePaymentError(error) {
-  this.paymentStatus = "Payment failed. Please try again.";
-  this.paymentStatusClass = "error";
-  console.error("Payment error in App.vue:", error);
-}
-
-function handlePaymentCancelled(data) {
-  this.paymentStatus = "Payment cancelled by user.";
-  this.paymentStatusClass = "cancelled";
-  console.log("Payment cancelled details in App.vue:", data);
-}
 </script>
 
 <template>
@@ -100,13 +82,6 @@ function handlePaymentCancelled(data) {
         >
           add to cart
         </button>
-        <PayPalButton
-          :product-name="product.name"
-          :product-price="product.price"
-          @payment-success="handlePaymentSuccess"
-          @payment-error="handlePaymentError"
-          @payment-cancelled="handlePaymentCancelled"
-        />
       </div>
     </div>
   </div>

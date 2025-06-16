@@ -19,7 +19,7 @@ const canDelete = ref(false);
     @mouseleave="canDelete = false"
   >
     <img
-      :src="`/assets/images/${props.product.image}`"
+      :src="`/assets/images/${props.product.images[0]}`"
       width="48px"
       height="48px"
       class="rounded-sm hover:cursor-pointer"

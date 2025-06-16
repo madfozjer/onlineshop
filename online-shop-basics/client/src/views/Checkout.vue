@@ -1,9 +1,18 @@
 <script setup>
 import CartProduct from "@/components/CartProduct.vue";
 import Navigation from "@/components/Navigation.vue";
+import PayPalButton from "@/components/PayPalButton.vue";
+import router from "@/router/router";
 import { useCart } from "@/stores/cart";
+import { stringify } from "postcss";
 import { ref, computed } from "vue";
 const cart = useCart();
+const itemNames = [];
+cart.getCart().forEach((item) => {
+  itemNames.push(item.name);
+});
+
+var paymentStatus, paymentStatusClass;
 
 const deliveryMethods = ["Inpost", "Poczta Polska"];
 const deliveryFees = {
@@ -13,10 +22,32 @@ const deliveryFees = {
 const delivery = ref("");
 
 const calculateTotal = computed(() => {
-  if (delivery.value != "")
-    return cart.total + deliveryFees[delivery.value] + "$";
-  else return cart.total + "$";
+  if (delivery.value != "") {
+    return cart.total + deliveryFees[delivery.value];
+  } else {
+    return cart.total;
+  }
 });
+
+function handlePaymentSuccess(details) {
+  paymentStatus = `Payment successful! Order ID: ${details.id}`;
+  paymentStatusClass = "success";
+  console.log("Payment successful details in App.vue:", details);
+  router.push("/success");
+  // Here you would typically update your backend, fulfill the order, etc.
+}
+
+function handlePaymentError(error) {
+  paymentStatus = "Payment failed. Please try again.";
+  paymentStatusClass = "error";
+  console.error("Payment error in App.vue:", error);
+}
+
+function handlePaymentCancelled(data) {
+  paymentStatus = "Payment cancelled by user.";
+  paymentStatusClass = "cancelled";
+  console.log("Payment cancelled details in App.vue:", data);
+}
 </script>
 
 <template>
@@ -42,17 +73,22 @@ const calculateTotal = computed(() => {
       </div>
 
       <span class="text-2xl font-semibold mt-52"
-        >TOTAL: <span class="font-normal">{{ calculateTotal }} </span></span
+        >TOTAL: <span class="font-normal">{{ calculateTotal }}$ </span></span
       >
       <p class="text-xl font-normal">
         Delivery fee: {{ deliveryFees[delivery]
         }}<span>{{ delivery != "" ? "$" : "" }}</span>
       </p>
-      <div
-        class="text-md border-2 block w-auto max-w-24 border-purple-800 bg-gradient-to-l from-purple-200/70 to-purple-300/70 rounded-md font-bold text-purple-900 p-1 hover:cursor-pointer hover:from-purple-300/70 hover:to-purple-500/70 hover:bg-gradient-to-b"
-      >
-        CHECKOUT
-      </div>
+      <PayPalButton
+        v-if="delivery != ''"
+        class="mt-4"
+        :product-name="JSON.stringify(itemNames)"
+        :product-price="parseFloat(calculateTotal)"
+        :delivery-fee="deliveryFees[delivery]"
+        @payment-success="handlePaymentSuccess"
+        @payment-error="handlePaymentError"
+        @payment-cancelled="handlePaymentCancelled"
+      />
     </div>
   </div>
 </template>

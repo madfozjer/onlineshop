@@ -163,6 +163,190 @@ export default function api(app, uri) {
     }
   });
 
+  async function generatePayPalAccessToken() {
+    try {
+      const auth = Buffer.from(
+        `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
+      ).toString("base64");
+      const response = await fetch(
+        `${process.env.PAYPAL_API_BASE}/v1/oauth2/token`,
+        {
+          method: "POST",
+          body: "grant_type=client_credentials",
+          headers: {
+            Authorization: `Basic ${auth}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to generate access token: ${response.statusText}`
+        );
+      }
+
+      const data = await response.json();
+      return data.access_token;
+    } catch (error) {
+      console.error("Error generating PayPal access token:", error);
+      throw error;
+    }
+  }
+
+  async function capturePayPalOrder(orderId) {
+    const accessToken = await generatePayPalAccessToken();
+    const url = `${process.env.PAYPAL_API_BASE}/v2/checkout/orders/${orderId}/capture`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error(
+        `PayPal Order Capture Error for Order ID ${orderId}:`,
+        errorData
+      );
+      throw new Error(
+        `Failed to capture PayPal order: ${JSON.stringify(errorData)}`
+      );
+    }
+
+    const captureData = await response.json();
+    return captureData;
+  }
+
+  app.post("/api/orders/:orderId/capture", async (req, res) => {
+    try {
+      const { orderId } = req.params;
+
+      if (!orderId) {
+        return res.status(400).json({ error: "Order ID is missing." });
+      }
+
+      const capture = await capturePayPalOrder(orderId);
+
+      // Here you would typically:
+      // 1. Update your database: Mark the order as paid, store transaction details.
+      // 2. Send confirmation emails.
+      // 3. Update inventory.
+
+      res.status(200).json({ success: true, captureDetails: capture });
+    } catch (error) {
+      console.error("Error in /api/orders/:orderId/capture:", error);
+      res.status(500).json({
+        error: "Failed to capture PayPal order on backend.",
+        details: error.message,
+      });
+    }
+  });
+
+  async function createPayPalOrder(cartItems, deliveryFee) {
+    const itemsTotal = cartItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+
+    const parsedDeliveryFee = typeof deliveryFee === "number" ? deliveryFee : 0;
+    const grandTotal = itemsTotal + parsedDeliveryFee;
+
+    const currencyCode = "EUR";
+
+    const accessToken = await generatePayPalAccessToken();
+    const url = `${process.env.PAYPAL_API_BASE}/v2/checkout/orders`;
+
+    const payload = {
+      intent: "CAPTURE",
+      purchase_units: [
+        {
+          amount: {
+            currency_code: currencyCode,
+            value: grandTotal.toFixed(2),
+            breakdown: {
+              item_total: {
+                currency_code: currencyCode,
+                value: itemsTotal.toFixed(2),
+              },
+              shipping: {
+                currency_code: currencyCode,
+                value: parsedDeliveryFee.toFixed(2),
+              },
+              // You can add tax_total, discount, etc. here if applicable
+            },
+          },
+          items: cartItems.map((item) => ({
+            name: item.name,
+            quantity: item.quantity.toString(),
+            unit_amount: {
+              currency_code: currencyCode,
+              value: item.price.toFixed(2),
+            },
+          })),
+          custom_id: `online-shop_${Date.now()}`,
+        },
+      ],
+
+      // Set the return URLs for when the user approves or cancels the payment
+      application_context: {
+        brand_name: "ONLINE SHOP", // Corrected typo here, assuming it was a typo
+        shipping_preference: "NO_SHIPPING", // change to SET_PROVIDED_ADDRESS later
+        user_action: "PAY_NOW",
+      },
+    };
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("PayPal Order Creation Error:", errorData);
+      throw new Error(
+        `Failed to create PayPal order: ${JSON.stringify(errorData)}`
+      );
+    }
+
+    const orderData = await response.json();
+    return orderData;
+  }
+
+  app.post("/api/orders", async (req, res) => {
+    try {
+      const { cart, deliveryFee } = req.body;
+
+      if (!cart || !Array.isArray(cart) || cart.length === 0) {
+        return res
+          .status(400)
+          .json({ error: "Cart data is missing or empty." });
+      }
+
+      const validatedCart = cart.map((item) => ({
+        name: item.name,
+        price: parseFloat(item.price),
+        quantity: parseInt(item.amount, 10),
+      }));
+
+      const order = await createPayPalOrder(validatedCart, deliveryFee);
+
+      res.status(200).json({ id: order.id });
+    } catch (error) {
+      console.error("Error in /api/orders:", error);
+      res.status(500).json({
+        error: "Failed to create PayPal order on backend.",
+        details: error.message,
+      });
+    }
+  });
+
   app.delete("/api/clearproducts", async (req, res) => {
     const client = new MongoClient(uri);
     const db = client.db("shop");

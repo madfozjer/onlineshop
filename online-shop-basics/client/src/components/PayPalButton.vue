@@ -4,7 +4,8 @@
 
 <script>
 import axios from "axios";
-import { useProductsList } from "@/stores/products"; // Ensure this path is correct
+import { useProductsList } from "@/stores/products";
+import { useCart } from "@/stores/cart";
 
 export default {
   name: "PayPalButton",
@@ -21,11 +22,16 @@ export default {
       type: Number,
       default: 1,
     },
+    deliveryFee: {
+      type: Number,
+      required: true,
+    },
   },
   data() {
     return {
       paypalScriptLoaded: false,
-      productsStore: useProductsList(), // Initialize the store here
+      productsStore: useProductsList(),
+      cartStore: useCart(),
     };
   },
   mounted() {
@@ -46,7 +52,7 @@ export default {
       try {
         // Assuming getAPI is an async method that fetches the client ID
         const response = await this.productsStore.getAPI("getpaypalclientid");
-        paypalClientId = response;
+        paypalClientId = response.data;
       } catch (error) {
         console.error("Failed to fetch PayPal client ID:", error);
         alert("Could not load PayPal payment options. Please try again later.");
@@ -101,7 +107,8 @@ export default {
           createOrder: async (data, actions) => {
             try {
               const response = await axios.post("/api/orders", {
-                cart: [cartItem],
+                cart: this.cartStore.getCart(),
+                deliveryFee: this.deliveryFee,
               });
               const orderData = response.data;
               if (orderData.id) {
@@ -122,11 +129,6 @@ export default {
               );
               const orderDetails = response.data;
               this.$emit("payment-success", orderDetails);
-              alert(
-                "Transaction completed by " +
-                  orderDetails.payer.name.given_name +
-                  "!"
-              );
               console.log("Payment details:", orderDetails);
             } catch (error) {
               console.error("Error capturing PayPal order on backend:", error);
@@ -141,7 +143,6 @@ export default {
           },
           onError: (err) => {
             console.error("PayPal button error:", err);
-            this.$emit("payment-error", err);
             alert(
               "An error occurred with the PayPal payment. Please try again."
             );
