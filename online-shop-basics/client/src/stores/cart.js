@@ -20,6 +20,12 @@ export const useCart = defineStore("cart", {
       this.saveToStorage();
       this.recalcTotal();
     },
+    getCart() {
+      return this.cart;
+    },
+    getTotal() {
+      return this.total;
+    },
     deleteItem(object) {
       const existingItem = this.cart.find((x) => x.name === object.name);
 
@@ -41,8 +47,10 @@ export const useCart = defineStore("cart", {
         console.log(`Item is not there`);
       }
     },
-    getCart() {
-      return this.cart;
+    clearCart() {
+      this.cart = [];
+      this.total = 0;
+      this.saveToStorage();
     },
     getItem(id) {
       const existingItem = this.list.find((x) => x.id == id);

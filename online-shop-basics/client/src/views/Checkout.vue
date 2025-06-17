@@ -32,21 +32,20 @@ const calculateTotal = computed(() => {
 function handlePaymentSuccess(details) {
   paymentStatus = `Payment successful! Order ID: ${details.id}`;
   paymentStatusClass = "success";
-  console.log("Payment successful details in App.vue:", details);
-  router.push("/success");
+  cart.clearCart();
+  console.log(details.captureDetails.id);
+  router.push(`/success/${details.captureDetails.id}`);
   // Here you would typically update your backend, fulfill the order, etc.
 }
 
 function handlePaymentError(error) {
   paymentStatus = "Payment failed. Please try again.";
   paymentStatusClass = "error";
-  console.error("Payment error in App.vue:", error);
 }
 
 function handlePaymentCancelled(data) {
   paymentStatus = "Payment cancelled by user.";
   paymentStatusClass = "cancelled";
-  console.log("Payment cancelled details in App.vue:", data);
 }
 </script>
 

@@ -18,17 +18,18 @@
         @mouseleave="accesingSearch = false"
       >
         <div class="border-2 border-gray-200 flex gap-0.5 focus:outline-0">
-          <button class="p-0.5">⌕</button>
+          <button class="p-0.5" v-if="homeAccess">⌕</button>
           <input
             type="text"
             placeholder="Search.."
             class="pl-1 pr-1 w-96"
             v-model="search"
+            v-if="homeAccess"
           />
         </div>
         <div class="flex flex-col z-10 absolute top-7 mr-4 mt-1">
           <span
-            v-if="accesingSearch"
+            v-if="accesingSearch && props.res != undefined"
             v-for="item in props.res.slice(0, 5)"
             class="border-2 border-dotted w-101 p-1 bg-white mt-1 hover:bg-gray-100 hover:cursor-pointer"
             v-html="highlight(item)"

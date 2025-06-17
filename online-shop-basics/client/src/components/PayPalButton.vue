@@ -110,9 +110,11 @@ export default {
                 cart: this.cartStore.getCart(),
                 deliveryFee: this.deliveryFee,
               });
+              console.log("Order created on backend:", response.data);
               const orderData = response.data;
-              if (orderData.id) {
-                return orderData.id;
+              console.log(orderData);
+              if (orderData.paypal_id) {
+                return orderData.paypal_id;
               } else {
                 throw new Error("No order ID returned from backend.");
               }

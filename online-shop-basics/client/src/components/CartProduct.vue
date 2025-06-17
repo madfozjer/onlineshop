@@ -9,6 +9,10 @@ const props = defineProps({
   product: Object,
 });
 
+if (props.product.images != undefined) {
+  props.product.image = props.product.images[0];
+}
+
 const canDelete = ref(false);
 </script>
 
@@ -19,7 +23,7 @@ const canDelete = ref(false);
     @mouseleave="canDelete = false"
   >
     <img
-      :src="`/assets/images/${props.product.images[0]}`"
+      :src="`/assets/images/${props.product.image}`"
       width="48px"
       height="48px"
       class="rounded-sm hover:cursor-pointer"

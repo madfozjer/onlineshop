@@ -235,6 +235,31 @@ export default function api(app, uri) {
       // 2. Send confirmation emails.
       // 3. Update inventory.
 
+      // After successfully creating the PayPal order, update the order status to RESOLVED
+      const client = new MongoClient(uri);
+      try {
+        await client.connect();
+        const db = client.db("shop");
+        const updateResult = await db
+          .collection("orders")
+          .updateOne({ orderId: orderId }, { $set: { status: "RESOLVED" } });
+
+        if (updateResult.matchedCount === 0) {
+          return res
+            .status(404)
+            .json({ error: "Order not found to update status." });
+        }
+
+        res
+          .status(200)
+          .json({ paypal_id: order.id, id: orderId, status: "RESOLVED" });
+      } catch (err) {
+        console.error("Failed to update order status", err);
+        res.status(500).json({ error: "Failed to update order status" });
+      } finally {
+        await client.close();
+      }
+
       res.status(200).json({ success: true, captureDetails: capture });
     } catch (error) {
       console.error("Error in /api/orders/:orderId/capture:", error);
@@ -290,9 +315,9 @@ export default function api(app, uri) {
         },
       ],
 
-      // Set the return URLs for when the user approves or cancels the payment
       application_context: {
-        brand_name: "ONLINE SHOP", // Corrected typo here, assuming it was a typo
+        brand_name: "ONLINE SHOP", // change to your brand name
+        locale: "en-US", // change to your preferred locale
         shipping_preference: "NO_SHIPPING", // change to SET_PROVIDED_ADDRESS later
         user_action: "PAY_NOW",
       },
@@ -335,9 +360,37 @@ export default function api(app, uri) {
         quantity: parseInt(item.amount, 10),
       }));
 
+      const total = validatedCart.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      );
+
       const order = await createPayPalOrder(validatedCart, deliveryFee);
 
-      res.status(200).json({ id: order.id });
+      const client = new MongoClient(uri);
+      const orderId = uuidv4();
+
+      const dbOrder = {
+        orderId: orderId,
+        status: "CREATED",
+        items: validatedCart,
+        deliveryFee: deliveryFee,
+        totalAmount: total,
+        createdAt: new Date(),
+      };
+
+      try {
+        await client.connect();
+        const db = client.db("shop");
+        await db.collection("orders").insertOne(dbOrder);
+
+        res.status(200).json({ paypal_id: order.id, id: orderId });
+      } catch (err) {
+        console.error("Failed to insert document", err);
+        res.status(500).json({ error: "Failed to create new order" });
+      } finally {
+        await client.close();
+      }
     } catch (error) {
       console.error("Error in /api/orders:", error);
       res.status(500).json({
