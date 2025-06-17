@@ -47,6 +47,48 @@ export default function api(app, uri) {
     }
   });
 
+  app.get("/api/checkorder/:orderId", async (req, res) => {
+    try {
+      const orderId = req.params.orderId;
+      if (!orderId) {
+        console.log("Error: PayPal Order ID is required.");
+        return res.status(422).json({ error: "PayPal Order ID is required." });
+      }
+
+      const client = new MongoClient(uri);
+      await client.connect();
+      const db = client.db("shop");
+      const order = await db.collection("orders").findOne({ orderId: orderId });
+
+      if (!order) {
+        console.log("Error: Order not found for this PayPal Order ID.");
+        return res
+          .status(422)
+          .json({ error: "Order not found for this PayPal Order ID." });
+      }
+
+      // Expiration validation
+      const now = new Date();
+      const isExpired =
+        order.expired === true ||
+        (order.expiresAt && new Date(order.expiresAt) <= now);
+      if (isExpired) {
+        return res
+          .status(422)
+          .json({ error: "Order has expired.", expired: true });
+      }
+
+      res.status(200).json({ status: order.status, expired: false });
+    } catch (error) {
+      console.error("Error checking order:", error);
+      res.status(500).json({
+        error: "Failed to check order.",
+        details:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
+      });
+    }
+  });
+
   const authenticateToken = (req, res, next) => {
     console.log("Middleware: authenticateToken entered.");
     const authHeader = req.headers["authorization"];
@@ -137,10 +179,89 @@ export default function api(app, uri) {
     }
   });
 
+  app.post("/api/orders", async (req, res) => {
+    const { cart, deliveryFee } = req.body;
+    if (!cart) {
+      console.log("Error: Cart is empty or invalid.");
+      return res.status(422).json({ error: "Cart is empty or invalid." });
+    }
+
+    try {
+      // 1. Create PayPal order
+      const paypalOrder = await createPayPalOrder(cart, deliveryFee);
+      const orderId = paypalOrder.id;
+
+      // 2. Store order in DB using PayPal order ID as the only ID
+      const client = new MongoClient(uri);
+      await client.connect();
+      const db = client.db("shop");
+      const dbOrder = {
+        orderId: orderId, // Only use PayPal order ID
+        status: "CREATED",
+        items: cart,
+        deliveryFee: deliveryFee,
+        createdAt: new Date(),
+        expiresAt: new Date(Date.now() + 1 * 60 * 1000), // expires in 1 minute for testing
+        expired: false,
+      };
+      await db.collection("orders").insertOne(dbOrder);
+      await client.close();
+
+      // 3. Return PayPal order ID to frontend
+      res.status(201).json({ id: orderId });
+    } catch (error) {
+      console.error("Error creating order:", error);
+      res.status(500).json({ error: "Failed to create order." });
+    }
+  });
+
+  app.post("/api/orders/:orderId/capture", async (req, res) => {
+    try {
+      const { orderId } = req.params;
+      if (!orderId) {
+        console.log("Error: PayPal Order ID is missing.");
+        return res.status(422).json({ error: "PayPal Order ID is missing." });
+      }
+
+      // 1. Capture PayPal order
+      const capture = await capturePayPalOrder(orderId);
+
+      // 2. Update order status in DB using PayPal order ID
+      const client = new MongoClient(uri);
+      await client.connect();
+      const db = client.db("shop");
+      const updateResult = await db
+        .collection("orders")
+        .updateOne({ orderId: orderId }, { $set: { status: "RESOLVED" } });
+      await client.close();
+
+      if (updateResult.matchedCount === 0) {
+        console.log("Error: Order not found for this PayPal Order ID.");
+        return res
+          .status(422)
+          .json({ error: "Order not found for this PayPal Order ID." });
+      }
+
+      // 3. Respond with capture details
+      res.status(200).json({
+        paypal_id: orderId,
+        status: "RESOLVED",
+        captureDetails: capture,
+      });
+    } catch (error) {
+      console.error("Error in /api/orders/:orderId/capture:", error);
+      res.status(500).json({
+        error: "Failed to capture PayPal order on backend.",
+        details: error.message,
+      });
+    }
+  });
+
   app.post("/api/newproduct", async (req, res) => {
     const document = req.body;
 
     if (!document) {
+      console.log("Error: No document provided.");
       return res.status(400).json({ error: "No document provided" });
     }
 
@@ -162,6 +283,32 @@ export default function api(app, uri) {
       await client.close();
     }
   });
+
+  // Expire orders every minute
+  setInterval(async () => {
+    const client = new MongoClient(uri);
+    try {
+      await client.connect();
+      const db = client.db("shop");
+      const now = new Date();
+      const result = await db.collection("orders").updateMany(
+        {
+          expired: false,
+          expiresAt: { $lte: now },
+        },
+        { $set: { expired: true } }
+      );
+      if (result.modifiedCount > 0) {
+        console.log(
+          `Expired ${result.modifiedCount} orders at ${now.toISOString()}`
+        );
+      }
+    } catch (err) {
+      console.error("Error expiring orders:", err);
+    } finally {
+      await client.close();
+    }
+  }, 60 * 1000); // every 1 minute
 
   async function generatePayPalAccessToken() {
     try {
@@ -220,59 +367,12 @@ export default function api(app, uri) {
     return captureData;
   }
 
-  app.post("/api/orders/:orderId/capture", async (req, res) => {
-    try {
-      const { orderId } = req.params;
-
-      if (!orderId) {
-        return res.status(400).json({ error: "Order ID is missing." });
-      }
-
-      const capture = await capturePayPalOrder(orderId);
-
-      // Here you would typically:
-      // 1. Update your database: Mark the order as paid, store transaction details.
-      // 2. Send confirmation emails.
-      // 3. Update inventory.
-
-      // After successfully creating the PayPal order, update the order status to RESOLVED
-      const client = new MongoClient(uri);
-      try {
-        await client.connect();
-        const db = client.db("shop");
-        const updateResult = await db
-          .collection("orders")
-          .updateOne({ orderId: orderId }, { $set: { status: "RESOLVED" } });
-
-        if (updateResult.matchedCount === 0) {
-          return res
-            .status(404)
-            .json({ error: "Order not found to update status." });
-        }
-
-        res
-          .status(200)
-          .json({ paypal_id: order.id, id: orderId, status: "RESOLVED" });
-      } catch (err) {
-        console.error("Failed to update order status", err);
-        res.status(500).json({ error: "Failed to update order status" });
-      } finally {
-        await client.close();
-      }
-
-      res.status(200).json({ success: true, captureDetails: capture });
-    } catch (error) {
-      console.error("Error in /api/orders/:orderId/capture:", error);
-      res.status(500).json({
-        error: "Failed to capture PayPal order on backend.",
-        details: error.message,
-      });
-    }
-  });
-
   async function createPayPalOrder(cartItems, deliveryFee) {
+    cartItems.forEach((item) => {
+      console.log(item.amount, item.price, item.name);
+    });
     const itemsTotal = cartItems.reduce(
-      (sum, item) => sum + item.price * item.quantity,
+      (sum, item) => sum + item.price * item.amount,
       0
     );
 
@@ -305,7 +405,7 @@ export default function api(app, uri) {
           },
           items: cartItems.map((item) => ({
             name: item.name,
-            quantity: item.quantity.toString(),
+            quantity: item.amount.toString(),
             unit_amount: {
               currency_code: currencyCode,
               value: item.price.toFixed(2),
@@ -343,62 +443,6 @@ export default function api(app, uri) {
     const orderData = await response.json();
     return orderData;
   }
-
-  app.post("/api/orders", async (req, res) => {
-    try {
-      const { cart, deliveryFee } = req.body;
-
-      if (!cart || !Array.isArray(cart) || cart.length === 0) {
-        return res
-          .status(400)
-          .json({ error: "Cart data is missing or empty." });
-      }
-
-      const validatedCart = cart.map((item) => ({
-        name: item.name,
-        price: parseFloat(item.price),
-        quantity: parseInt(item.amount, 10),
-      }));
-
-      const total = validatedCart.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0
-      );
-
-      const order = await createPayPalOrder(validatedCart, deliveryFee);
-
-      const client = new MongoClient(uri);
-      const orderId = uuidv4();
-
-      const dbOrder = {
-        orderId: orderId,
-        status: "CREATED",
-        items: validatedCart,
-        deliveryFee: deliveryFee,
-        totalAmount: total,
-        createdAt: new Date(),
-      };
-
-      try {
-        await client.connect();
-        const db = client.db("shop");
-        await db.collection("orders").insertOne(dbOrder);
-
-        res.status(200).json({ paypal_id: order.id, id: orderId });
-      } catch (err) {
-        console.error("Failed to insert document", err);
-        res.status(500).json({ error: "Failed to create new order" });
-      } finally {
-        await client.close();
-      }
-    } catch (error) {
-      console.error("Error in /api/orders:", error);
-      res.status(500).json({
-        error: "Failed to create PayPal order on backend.",
-        details: error.message,
-      });
-    }
-  });
 
   app.delete("/api/clearproducts", async (req, res) => {
     const client = new MongoClient(uri);

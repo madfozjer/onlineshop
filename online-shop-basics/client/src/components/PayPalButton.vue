@@ -113,10 +113,10 @@ export default {
               console.log("Order created on backend:", response.data);
               const orderData = response.data;
               console.log(orderData);
-              if (orderData.paypal_id) {
-                return orderData.paypal_id;
+              if (orderData.id) {
+                return orderData.id;
               } else {
-                throw new Error("No order ID returned from backend.");
+                throw new Error("No order ID and DB id returned from backend.");
               }
             } catch (error) {
               console.error("Error creating PayPal order on backend:", error);
