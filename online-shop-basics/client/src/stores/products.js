@@ -182,5 +182,25 @@ export const useProductsList = defineStore("products", {
         return null;
       }
     },
+    async postShippingData(body) {
+      try {
+        const response = await axios.post(
+          "http://localhost:5000/api/shipping",
+          {
+            body,
+            contentType: "application/json",
+          }
+        );
+
+        console.log(response.data);
+        return response.data;
+      } catch (error) {
+        console.error(
+          "Error posting shipping data:",
+          error.response ? error.response.data : error.message
+        );
+        return null;
+      }
+    },
   },
 });

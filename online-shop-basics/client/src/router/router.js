@@ -4,6 +4,7 @@ import ProductPage from "@/views/ProductPage.vue";
 import Dashboard from "@/views/Dashboard.vue";
 import Checkout from "@/views/Checkout.vue";
 import SuccessPayment from "@/components/SuccessPayment.vue";
+import OrderManager from "@/views/OrderManager.vue";
 
 const routes = [
   { path: "/", component: HomeView, name: "Home" },
@@ -11,6 +12,7 @@ const routes = [
   { path: "/dashboard", component: Dashboard, name: "Dashboard" },
   { path: "/checkout", component: Checkout },
   { path: "/success/:id", component: SuccessPayment, name: "Success" },
+  { path: "/ordermanager", component: OrderManager, name: "OrderManager" },
 ];
 
 const router = createRouter({

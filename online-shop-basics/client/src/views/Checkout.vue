@@ -11,9 +11,11 @@ import * as yup from "yup";
 import validator from "validator";
 import countries from "i18n-iso-countries";
 import enLocale from "i18n-iso-countries/langs/en.json";
+import { useProductsList } from "@/stores/products";
 
 countries.registerLocale(enLocale);
 
+const productsList = useProductsList();
 const cart = useCart();
 const itemNames = [];
 cart.getCart().forEach((item) => {
@@ -22,6 +24,7 @@ cart.getCart().forEach((item) => {
 
 var paymentStatus, paymentStatusClass;
 
+const delivery = ref("");
 const shippingData = ref({
   firstName: "",
   lastName: "",
@@ -32,6 +35,8 @@ const shippingData = ref({
   phoneNumber: "",
   email: "",
   notes: "",
+  deliveryMethod: delivery.value || "",
+  orderNumber: null, // This will be set after payment
 });
 
 const errorMap = [
@@ -54,7 +59,6 @@ const handleSubmit = async () => {
   validationErrors.value = {};
   phoneNumberNotice.value = null;
   formValidated.value = false;
-  feedback.value = "";
 
   try {
     // Validate shippingData using yup schema
@@ -89,7 +93,6 @@ const deliveryFees = {
   Inpost: 5,
   "Poczta Polska": 3,
 };
-const delivery = ref("");
 
 const calculateTotal = computed(() => {
   if (delivery.value != "") {
@@ -105,6 +108,9 @@ function handlePaymentSuccess(details) {
   cart.clearCart();
   console.log(details.captureDetails.id);
   router.push(`/success/${details.captureDetails.id}`);
+  shippingData.value.orderNumber = details.captureDetails.id;
+  shippingData.value.deliveryMethod = delivery.value;
+  productsList.postShippingData(shippingData.value);
 }
 
 function handlePaymentError(error) {

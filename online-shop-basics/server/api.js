@@ -155,6 +155,88 @@ export default function api(app, uri) {
     }
   });
 
+  app.post("/api/shipping", async (req, res) => {
+    const {
+      firstName,
+      lastName,
+      address,
+      city,
+      postalCode,
+      country,
+      phoneNumber,
+      email,
+      notes,
+      deliveryMethod,
+    } = req.body.body;
+    console.log(
+      firstName,
+      lastName,
+      address,
+      city,
+      postalCode,
+      country,
+      phoneNumber,
+      email,
+      notes
+    );
+
+    const orderId = req.body.body.orderNumber;
+    console.log(orderId);
+
+    if (!orderId) {
+      console.log("Error: PayPal Order ID is required.");
+      return res.status(422).json({ error: "PayPal Order ID is required." });
+    }
+
+    const client = new MongoClient(uri);
+    await client.connect();
+    const db = client.db("shop");
+    const order = await db.collection("orders").findOne({ orderId: orderId });
+
+    if (!order) {
+      console.log("Error: Order not found for this PayPal Order ID.");
+      return res
+        .status(422)
+        .json({ error: "Order not found for this PayPal Order ID." });
+    }
+
+    if (order.status !== "CREATED") {
+      console.log("Error: Order is not in CREATED status.");
+      return res.status(422).json({ error: "Order is not in CREATED status." });
+    }
+
+    try {
+      // Update order with shipping details
+      const updateResult = await db.collection("orders").updateOne(
+        { orderId: orderId },
+        {
+          $set: {
+            shippingDetails: {
+              firstName,
+              lastName,
+              address,
+              city,
+              postalCode,
+              country,
+              phoneNumber,
+              email,
+              notes,
+            },
+            status: "SHIPPING",
+          },
+        }
+      );
+
+      res.status(200).json({
+        message: "Order updated with shipping details successfully.",
+        orderId: orderId,
+      });
+    } catch (err) {
+      console.error("Error updating order with shipping details:", err);
+      return res.status(500).json({ error: "Failed to update order." });
+    }
+  });
+
   app.get("/api/listproducts", async (req, res) => {
     const client = new MongoClient(uri);
 
@@ -178,6 +260,8 @@ export default function api(app, uri) {
       await client.close();
     }
   });
+
+  app.get("/api/allorders", async (req, res) => {});
 
   app.post("/api/orders", async (req, res) => {
     const { cart, deliveryFee } = req.body;
@@ -230,9 +314,8 @@ export default function api(app, uri) {
       const client = new MongoClient(uri);
       await client.connect();
       const db = client.db("shop");
-      const updateResult = await db
-        .collection("orders")
-        .updateOne({ orderId: orderId }, { $set: { status: "RESOLVED" } });
+      const updateResult = await db.collection("orders");
+
       await client.close();
 
       if (updateResult.matchedCount === 0) {
@@ -245,7 +328,6 @@ export default function api(app, uri) {
       // 3. Respond with capture details
       res.status(200).json({
         paypal_id: orderId,
-        status: "RESOLVED",
         captureDetails: capture,
       });
     } catch (error) {

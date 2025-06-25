@@ -9,6 +9,7 @@ const cart = useCart();
 const route = useRoute();
 
 import Navigation from "@/components/Navigation.vue";
+import router from "@/router/router";
 
 const id = route.params.id;
 
@@ -73,6 +74,10 @@ const product = products.getItem(id) != 404 ? products.getItem(id) : undefined;
         </div>
         <button
           class="border-2 border-gray-700 rounded-md text-3xl p-1 bg-blue-300 text-white mt-2 hover:cursor-pointer"
+          @click="
+            cart.addItem(product);
+            router.push('/checkout');
+          "
         >
           buy now
         </button>
