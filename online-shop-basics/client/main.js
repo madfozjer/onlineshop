@@ -13,10 +13,10 @@ pinia.use(piniaPluginPersistedstate);
 app.use(pinia);
 app.use(router);
 app.mount("#app");
-const products = useProductsList();
-products.initStore();
 const cart = useCart();
 cart.loadFromStorage();
+const products = useProductsList();
+products.initStore();
 
 /*
 try {

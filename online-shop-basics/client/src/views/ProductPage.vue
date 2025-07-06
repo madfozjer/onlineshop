@@ -30,14 +30,22 @@ const product = products.getItem(id) != 404 ? products.getItem(id) : undefined;
 
         <div class="flex flex-col">
           <img
-            :src="`/assets/images/${product.images[0]}`"
+            :src="
+              product.images[1]
+                ? `/assets/images/${product.images[1]}`
+                : `/assets/images/${product.images[0]}`
+            "
             width="200px"
             height="195px"
             class="border-2 border-white"
           />
 
           <img
-            :src="`/assets/images/${product.images[0]}`"
+            :src="
+              product.images[2]
+                ? `/assets/images/${product.images[2]}`
+                : `/assets/images/${product.images[0]}`
+            "
             width="200px"
             height="195px"
             class="border-2 border-white"

@@ -11,7 +11,7 @@ const orderId = window.location.pathname.split("/").filter(Boolean).pop();
 products
   .getAPI(`checkorder/${orderId}`)
   .then((response) => {
-    if (response.status == "RESOLVED") {
+    if (response.status == "SHIPPING") {
       isExist.value = true;
     } else {
       isExist.value = false;

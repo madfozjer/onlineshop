@@ -74,7 +74,7 @@ export default function api(app, uri) {
         (order.expiresAt && new Date(order.expiresAt) <= now);
       if (isExpired) {
         return res
-          .status(422)
+          .status(410)
           .json({ error: "Order has expired.", expired: true });
       }
 
@@ -89,8 +89,55 @@ export default function api(app, uri) {
     }
   });
 
+  app.get("/api/resolveorder/:orderId", async (req, res) => {
+    try {
+      const orderId = req.params.orderId;
+
+      if (orderId === undefined) {
+        console.log("Error: OrderID is broken.");
+        return res.status(400).json({ error: "OrderID is broken." });
+      }
+
+      const client = new MongoClient(uri);
+      await client.connect();
+      const db = client.db("shop");
+      const order = await db.collection("orders").findOne({
+        orderId: orderId,
+      });
+
+      if (!order) {
+        console.log("Error: No order found.");
+        return res.status(404).json({
+          error: "Order not found.",
+        });
+      }
+
+      await db.collection("orders").updateOne(
+        {
+          orderId: orderId,
+        },
+        {
+          $set: {
+            status: "RESOLVED",
+          },
+        }
+      );
+
+      res.status(200).json({
+        message: `Order ${orderId} resolved successfully.`,
+      });
+
+      console.log(`Order ${orderId} resolved`);
+    } catch (error) {
+      console.error("Error resolving order: ", error);
+
+      res.status(500).json({
+        error: "Failed to resolve order",
+      });
+    }
+  });
+
   const authenticateToken = (req, res, next) => {
-    console.log("Middleware: authenticateToken entered.");
     const authHeader = req.headers["authorization"];
     const token = authHeader && authHeader.split(" ")[1];
 
@@ -118,7 +165,6 @@ export default function api(app, uri) {
           .json({ message: "Invalid authentication token." });
       }
 
-      console.log("Middleware: Token verified successfully");
       next(); // IMPORTANT: Call next() to pass control to the route handler
     });
   };
@@ -261,13 +307,32 @@ export default function api(app, uri) {
     }
   });
 
-  app.get("/api/allorders", async (req, res) => {});
+  app.get("/api/allorders", async (req, res) => {
+    const client = new MongoClient(uri);
+    await client.connect();
+    const db = client.db("shop");
+    const ordersCollection = db.collection("orders");
+    const allOrders = await ordersCollection.find({}).toArray();
+
+    res.status(200).json(allOrders);
+  });
 
   app.post("/api/orders", async (req, res) => {
     const { cart, deliveryFee } = req.body;
+
     if (!cart) {
       console.log("Error: Cart is empty or invalid.");
       return res.status(422).json({ error: "Cart is empty or invalid." });
+    }
+
+    var totalAmount = 0;
+
+    for (const item of cart) {
+      // Ensure item.price and item.amount are numbers, default to 0 if not
+      const price = typeof item.price === "number" ? item.price : 0;
+      const amount = typeof item.amount === "number" ? item.amount : 0;
+
+      totalAmount += price * amount;
     }
 
     try {
@@ -284,6 +349,7 @@ export default function api(app, uri) {
         status: "CREATED",
         items: cart,
         deliveryFee: deliveryFee,
+        totalAmount: totalAmount,
         createdAt: new Date(),
         expiresAt: new Date(Date.now() + 1 * 60 * 1000), // expires in 1 minute for testing
         expired: false,
@@ -299,41 +365,76 @@ export default function api(app, uri) {
     }
   });
 
-  app.post("/api/orders/:orderId/capture", async (req, res) => {
+  async function deleteOrder(orderId) {
     try {
-      const { orderId } = req.params;
       if (!orderId) {
-        console.log("Error: PayPal Order ID is missing.");
-        return res.status(422).json({ error: "PayPal Order ID is missing." });
+        console.log("Error: Order ID is missing.");
+        return { success: false, message: "Order ID is missing." };
       }
 
-      // 1. Capture PayPal order
-      const capture = await capturePayPalOrder(orderId);
-
-      // 2. Update order status in DB using PayPal order ID
       const client = new MongoClient(uri);
       await client.connect();
       const db = client.db("shop");
-      const updateResult = await db.collection("orders");
+
+      const result = await db
+        .collection("orders")
+        .deleteOne({ orderId: orderId });
 
       await client.close();
 
-      if (updateResult.matchedCount === 0) {
-        console.log("Error: Order not found for this PayPal Order ID.");
-        return res
-          .status(422)
-          .json({ error: "Order not found for this PayPal Order ID." });
+      if (result.deletedCount === 1) {
+        console.log(`Order with ID ${orderId} deleted successfully.`);
+        return {
+          success: true,
+          message: `Order with ID ${orderId} deleted successfully.`,
+        };
+      } else {
+        console.log(`Order with ID ${orderId} not found.`);
+        return {
+          success: false,
+          message: `Order with ID ${orderId} not found.`,
+        };
       }
-
-      // 3. Respond with capture details
-      res.status(200).json({
-        paypal_id: orderId,
-        captureDetails: capture,
-      });
     } catch (error) {
-      console.error("Error in /api/orders/:orderId/capture:", error);
+      console.error("Error during deleting order: ", error);
+      return {
+        success: false,
+        message:
+          error.message ||
+          "An unknown error occurred during database operation.",
+      };
+    }
+  }
+
+  app.get("/api/deleteorder/:orderid", async (req, res) => {
+    console.log("Endpoint was hit");
+
+    const orderId = req.params.orderid;
+    console.log(`Order ID '${orderId}' deleting requested`);
+
+    if (!orderId) {
+      return res.status(400).json({
+        error: "Bad Request: Order ID is missing from the URL parameter.",
+      });
+    }
+
+    try {
+      const result = await deleteOrder(orderId);
+
+      if (result.success) {
+        res.status(200).json({
+          message: result.message,
+        });
+      } else {
+        const statusCode = result.message.includes("not found") ? 404 : 500;
+        res.status(statusCode).json({
+          error: result.message,
+        });
+      }
+    } catch (error) {
+      console.error("Error in /api/deleteorder/:orderid endpoint:", error);
       res.status(500).json({
-        error: "Failed to capture PayPal order on backend.",
+        error: "An unexpected server error occurred.",
         details: error.message,
       });
     }
@@ -366,6 +467,33 @@ export default function api(app, uri) {
     }
   });
 
+  /*app.post("/api/newcollection", async (req, res) => {
+    const document = req.body;
+
+    if (!document) {
+      console.log("Error: No document provided.");
+      return res.status(400).json({ error: "No document provided" });
+    }
+
+    const client = new MongoClient(uri);
+
+    try {
+      await client.connect();
+      const db = client.db("shop");
+      const result = await db.collection("collections").insertOne(document);
+
+      res.status(201).json({
+        message: "Document inserted successfully",
+        insertedId: result.insertedId,
+      });
+    } catch (err) {
+      console.error("Failed to insert document", err);
+      res.status(500).json({ error: "Failed to insert document" });
+    } finally {
+      await client.close();
+    }
+  });*/
+
   // Expire orders every minute
   setInterval(async () => {
     const client = new MongoClient(uri);
@@ -380,6 +508,10 @@ export default function api(app, uri) {
         },
         { $set: { expired: true } }
       );
+      const deleteResult = await db.collection("orders").deleteMany({
+        expired: true,
+        status: "CREATED",
+      });
       if (result.modifiedCount > 0) {
         console.log(
           `Expired ${result.modifiedCount} orders at ${now.toISOString()}`
@@ -421,6 +553,46 @@ export default function api(app, uri) {
       throw error;
     }
   }
+
+  app.post("/api/orders/:orderId/capture", async (req, res) => {
+    try {
+      const { orderId } = req.params;
+      if (!orderId) {
+        console.log("Error: PayPal Order ID is missing.");
+        return res.status(422).json({ error: "PayPal Order ID is missing." });
+      }
+
+      // 1. Capture PayPal order
+      const capture = await capturePayPalOrder(orderId);
+
+      // 2. Update order status in DB using PayPal order ID
+      const client = new MongoClient(uri);
+      await client.connect();
+      const db = client.db("shop");
+      const updateResult = await db.collection("orders");
+
+      await client.close();
+
+      if (updateResult.matchedCount === 0) {
+        console.log("Error: Order not found for this PayPal Order ID.");
+        return res
+          .status(422)
+          .json({ error: "Order not found for this PayPal Order ID." });
+      }
+
+      // 3. Respond with capture details
+      res.status(200).json({
+        paypal_id: orderId,
+        captureDetails: capture,
+      });
+    } catch (error) {
+      console.error("Error in /api/orders/:orderId/capture:", error);
+      res.status(500).json({
+        error: "Failed to capture PayPal order on backend.",
+        details: error.message,
+      });
+    }
+  });
 
   async function capturePayPalOrder(orderId) {
     const accessToken = await generatePayPalAccessToken();

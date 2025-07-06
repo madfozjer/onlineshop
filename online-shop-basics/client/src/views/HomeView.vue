@@ -221,14 +221,6 @@ function filter() {
         <span class="font-semibold text-xl">Types:</span>
         <span
           v-for="type in products.params.types"
-          :style="{
-            color:
-              type == 'T-Shirt'
-                ? 'green'
-                : type == 'Jacket'
-                  ? 'darkblue'
-                  : null,
-          }"
           class="hover:font-semibold hover:cursor-pointer"
           @click="filterClick(type)"
         >

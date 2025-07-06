@@ -6,52 +6,23 @@ export const useProductsList = defineStore("products", {
   state: () => {
     return {
       list: [],
-      defaultList: [
-        {
-          index: 0,
-          id: "pprD7",
-          name: "Autoboy Vintage T-Shirt",
-          paramaters: ["M", "White", "T-Shirt"],
-          tags: ["tshirt", "t-shirt", "vintage", "retro"],
-          price: 40.0,
-          images: ["autoboy-tee1.jpg"],
-          description: `Channel retro vibes with the Autoboy Vintage T-Shirt, featuring a faded graphic inspired by classic 90s streetwear. Made from soft, breathable cotton with a relaxed fit, it’s perfect for casual days or layering up with your favorite jacket. A must-have for fans of nostalgic style and effortless cool.`,
-        },
-        {
-          index: 1,
-          id: "no7OW",
-          name: "Disney Pizza Vintage T-Shirt",
-          paramaters: ["S", "Red", "T-Shirt"],
-          tags: ["tshirt", "t-shirt", "vintage", "retro", "cartoon"],
-          price: 70.0,
-          images: ["disney-pizza-tee1.jpg", "disney-pizza-tee-2.jpg"],
-          description: `Bring the magic and the munchies together with the Disney Pizza Vintage T-Shirt. Featuring a retro-inspired graphic that blends beloved Disney charm with everyone's favorite food, this tee is made from ultra-soft cotton and designed for a relaxed, lived-in feel. Perfect for park days, pizza nights, or just repping your love for all things Disney.`,
-        },
-      ],
-      tags: ["tshirt", "t-shirt", "vintage", "retro", "cartoon"],
+      tags: [],
       params: {
-        colors: ["White", "Red", "Black"],
-        types: ["T-Shirt", "Jacket"],
-        sizes: ["S", "M"],
+        colors: [],
+        types: [],
+        sizes: [],
       },
-      productNames: ["Autoboy Vintage T-Shirt", "Disney Pizza Vintage T-Shirt"],
+      productNames: [],
       token: "",
     };
   },
   actions: {
+    initStore() {
+      console.log(this.params);
+    },
     async resetStore() {
       this.list = [];
       this.deleteAPI("clearproducts");
-      this.initStore();
-    },
-    initStore() {
-      // some test data
-      if (this.list[0] == undefined) {
-        this.defaultList.forEach((element) => {
-          this.list.push(element);
-          this.postProduct(element);
-        });
-      }
     },
     getItem(id) {
       const existingItem = this.list.find((x) => x.id == id);
@@ -71,7 +42,21 @@ export const useProductsList = defineStore("products", {
         this.tags.push(tag);
       });
       this.productNames.push(object.name);
+      this.analyzeParams();
       return `Item ${object.name} has been added`;
+    },
+    analyzeParams() {
+      this.params = {
+        colors: [],
+        types: [],
+        sizes: [],
+      };
+
+      this.list.forEach((item) => {
+        this.params.colors.push(item.paramaters[0]);
+        this.params.sizes.push(item.paramaters[1]);
+        this.params.types.push(item.paramaters[2]);
+      });
     },
     getLength() {
       return this.list.length;
@@ -86,6 +71,7 @@ export const useProductsList = defineStore("products", {
         this.list = this.list.filter((product) => {
           return product.id != existingItem.id;
         });
+        this.analyzeParams();
         return `Item ${existingItem.name} was deleted from products list`;
       } else {
         return `Can't find your item`;
@@ -200,6 +186,56 @@ export const useProductsList = defineStore("products", {
           error.response ? error.response.data : error.message
         );
         return null;
+      }
+    },
+    async resolveOrder(id) {
+      // Assuming this is part of an async function
+      console.log(`Resolving order ${id}..`);
+      try {
+        const response = await fetch(
+          `http://localhost:5000/api/resolveorder/${id}`
+        );
+
+        if (response.status === 200) {
+          console.log(`Order resolved successfully ${id}`);
+          // If your server sends back data on success, you might want to parse it
+          // const data = await response.json(); // Or response.text()
+          return true; // Or return data; if you want to return the parsed data
+        } else {
+          console.log(
+            `Error resolving order ${id}. Status: ${response.status}`
+          );
+          // If your server sends an error message in the response body, parse it
+          const errorData = await response.json().catch(() => response.text()); // Try JSON, then plain text
+          console.error("Server error details:", errorData);
+          return errorData; // Return the error details from the server
+        }
+      } catch (error) {
+        console.error(
+          `Network or unexpected error resolving order ${id}:`,
+          error
+        );
+        return false; // Indicate failure due to an exception
+      }
+    },
+    async deleteOrder(id) {
+      try {
+        const response = await fetch(
+          `http://localhost:5000/api/deleteorder/${id}`
+        );
+
+        if (response.status === 200) {
+          console.log(`Order deleted successfully ${id}`);
+          return true;
+        } else {
+          console.log(`Error deleting order ${id}. Status: ${response.status}`);
+        }
+      } catch (error) {
+        console.error(
+          `Network or unexpected error deleting order ${id}:`,
+          error
+        );
+        return false; // Indicate failure due to an exception
       }
     },
   },

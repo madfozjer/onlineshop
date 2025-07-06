@@ -5,13 +5,16 @@ import { ref, watch } from "vue";
 import Product from "@/components/DashboardProduct.vue";
 import { RouterLink } from "vue-router";
 import { useCart } from "@/stores/cart";
+import { useCollections } from "@/stores/colections";
+import { useTags } from "@/stores/tags";
+const tags = useTags();
+const collections = useCollections();
 const products = useProductsList();
 const cart = useCart();
 
 const loggedIn = ref(false);
 console.log(localStorage.getItem("authToken"));
 loggedIn.value = await products.auth();
-console.log(loggedIn.value);
 const password = ref("");
 const wrongPassword = ref(false);
 
@@ -40,11 +43,23 @@ const deleteItemID = ref("");
 const findIdName = ref("");
 const outputID = ref("");
 
+const newCollectionName = ref("");
+const newCollectionItems = ref([]);
+
+const deleteCollectionID = ref("");
+
+const newTagName = ref("");
+const deleteTagName = ref("");
+
 const debug = ref([]);
 
 function log(text, color) {
   debug.value.push("<span style='color:" + color + "'>" + text + "</span>");
   debug.value = [...debug.value];
+}
+
+function popup(text) {
+  alert(text);
 }
 
 watch(debug, (arr) => {
@@ -56,8 +71,9 @@ function clearDebug() {
 }
 
 function addItem() {
-  newItem.value.paramaters = newItem.value.paramaters.split("-");
+  newItem.value.paramaters = newItem.value.paramaters.split("/");
   newItem.value.tags = newItem.value.tags.split("#");
+  newItem.value.tags.shift();
   newItem.value.images = newItem.value.images.split("/");
 
   log(products.addItem(newItem.value), "purple");
@@ -73,6 +89,68 @@ function addItem() {
   };
 
   log(products.list);
+}
+
+function handleNewCollection() {
+  newCollectionItems.value = newCollectionItems.value.split("#");
+  newCollectionItems.value.shift();
+
+  collections.addCollection(newCollectionName.value, newCollectionItems.value);
+  popup(`New collection ${newCollectionName.value} was added`);
+}
+
+function handleDeleteProduct(deleteItemID) {
+  areYouSure(() => {
+    // This anonymous function will be executed if the user confirms
+    products.deleteItem(deleteItemID);
+  }, "Are you sure you want to delete this item?");
+}
+
+function handleAddNewTag(newTagName) {
+  popup(tags.addTag(newTagName));
+}
+
+function handleDeleteTag(deleteTagName) {
+  popup(tags.deleteTag(deleteTagName));
+}
+
+function handleDeleteCollection() {
+  console.log("collections object:", collections);
+
+  console.log(
+    "collections.deleteCollection property:",
+    collections.deleteCollection
+  );
+
+  console.log(
+    "Type of collections.deleteCollection:",
+    typeof collections.deleteCollection
+  );
+
+  if (deleteCollectionID.value) {
+    areYouSure(() => {
+      console.log(
+        "Inside areYouSure callback. Calling collections.deleteCollection with ID:",
+        deleteCollectionID.value
+      );
+      collections.deleteCollection(deleteCollectionID.value);
+    }, "Are you sure you want to delete this collection?");
+  } else {
+    alert("No collection to delete found");
+  }
+}
+
+function areYouSure(callback, message = "Are you sure?") {
+  if (typeof callback !== "function") {
+    console.error("areYouSure: The first argument must be a function.");
+    return;
+  }
+
+  if (confirm(message)) {
+    callback();
+  } else {
+    console.log("Action cancelled by user.");
+  }
 }
 
 const formFilled = () => {
@@ -106,11 +184,15 @@ const formFilled = () => {
               class="border-2 border-gray-700 p-1 mt-2"
               v-model="newItem.name"
             /><br />
+            <span class="italic font-mono opacity-75 text-sm"
+              >(size)/(color)/(type) like M/White/T-Shirt and only after that
+              you can add other things like /Eco/Good</span
+            ><br />
             Parameters:
             <input
               type="text"
               required
-              placeholder="M-Good-Eco"
+              placeholder="M/White/T-Shirt"
               class="border-2 border-gray-700 p-1 mt-2"
               v-model="newItem.paramaters"
             /><br />
@@ -149,7 +231,7 @@ const formFilled = () => {
               v-if="formFilled()"
               class="border-2 border-gray-700 p-1 bg-gray-100 shadow-md mt-2 hover:cursor-pointer"
               type="submit"
-              @click.prevent="addItem"
+              @click.prevent="(addItem(), popup('Item added successfully'))"
               value="add new item"
             />
           </form>
@@ -164,8 +246,9 @@ const formFilled = () => {
               placeholder="Enter item id..."
             />
             <input
+              v-if="deleteItemID"
               type="submit"
-              @click.prevent="log(products.deleteItem(deleteItemID), 'green')"
+              @click.prevent="handleDeleteProduct(deleteItemID)"
               value="submit"
               class="border-2 border-gray-800 p-1"
             />
@@ -175,7 +258,7 @@ const formFilled = () => {
           <form>
             <span class="font-bold">Get id:</span>
             <input
-              class="ml-2 text-sm"
+              class="ml-2 text-[12px]"
               type="text"
               v-model="findIdName"
               placeholder="Enter item name.."
@@ -190,6 +273,84 @@ const formFilled = () => {
             <span class="italic">{{
               outputID != "" ? outputID : "nothing"
             }}</span>
+          </form>
+        </div>
+        <div class="border-2 border-gray-800 shadow-md p-2 mt-4 block">
+          <form class="flex flex-col gap-1">
+            <span class="font-bold">Create new collection:</span>
+            <input
+              class="text-md"
+              type="text"
+              v-model="newCollectionName"
+              placeholder="Enter new collection name here..."
+            />
+            <input
+              class="text-md"
+              type="text"
+              v-model="newCollectionItems"
+              placeholder="Enter new collection items (ids) here separated by #, like #ppdr7#joko5..."
+            />
+            <input
+              v-if="newCollectionName != '' && newCollectionItems != ''"
+              @click.prevent="handleNewCollection()"
+              value="submit"
+              type="submit"
+              class="border-2 border-gray-800 p-1 w-fit"
+            />
+          </form>
+        </div>
+        <div class="border-2 border-gray-800 shadow-md p-2 mt-4 block">
+          <form class="flex flex-col gap-1">
+            <span class="font-bold">Delete collection</span>
+            <input
+              type="text"
+              class="text-md"
+              v-model="deleteCollectionID"
+              placeholder="Enter collection to delete name her.."
+            />
+            <input
+              v-if="deleteCollectionID"
+              type="submit"
+              value="submit"
+              @click.prevent="handleDeleteCollection()"
+              class="border-2 border-gray-800 p-1 w-fit"
+            />
+          </form>
+        </div>
+        <div class="border-2 border-gray-800 shadow-md p-2 mt-4 block">
+          <form class="flex flex-col gap-1">
+            <span class="font-bold">Add new search (under search bar) tag</span>
+            <input
+              type="text"
+              class="text-md pl-1"
+              v-model="newTagName"
+              placeholder="Enter new tag name there.."
+            />
+            <input
+              v-if="newTagName"
+              type="submit"
+              value="submit"
+              @click.prevent="handleAddNewTag(newTagName)"
+              class="border-2 border-gray-800 p-1 w-fit hover:cursor-pointer"
+            />
+          </form>
+        </div>
+        <div class="border-2 border-gray-800 shadow-md p-2 mt-4 block">
+          <form class="flex flex-col gap-1">
+            <span class="font-bold">Delete search tag</span>
+            <input
+              type="text"
+              class="text-md pl-1"
+              v-model="deleteTagName"
+              placeholder="Enter tag to delete name there.."
+            />
+            <input
+              v-if="deleteTagName"
+              type="submit"
+              value="submit"
+              @click.prevent="handleDeleteTag(deleteTagName)"
+              class="border-2 border-gray-800 p-1 w-fit hover:cursor-pointer"
+            />
           </form>
         </div>
         <button
@@ -213,6 +374,12 @@ const formFilled = () => {
         </button>
         <button @click="clearDebug" class="ml-4 hover:cursor-pointer">
           clear console
+        </button>
+        <button
+          @click="log(JSON.stringify(collections.collections), 'lime')"
+          class="ml-4 hover:cursor-pointer"
+        >
+          get collections
         </button>
       </div>
 

@@ -63,10 +63,12 @@
 import { watch, defineEmits, ref, defineProps, computed } from "vue";
 import Cart from "./Cart.vue";
 import router from "@/router/router";
+import { useTags } from "@/stores/tags";
+const tagList = useTags();
 
 const accesingSearch = ref(false);
 
-const tags = ["T-Shirt", "Retro"];
+const tags = tagList.list;
 
 const props = defineProps({
   res: Array,

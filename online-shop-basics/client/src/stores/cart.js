@@ -8,7 +8,7 @@ export const useCart = defineStore("cart", {
     addItem(object) {
       const existingItem = this.cart.find((x) => x.name === object.name);
       if (existingItem) {
-        object["amount"]++;
+        existingItem["amount"]++;
       } else {
         object["amount"] = 1;
         this.cart.push(object);
