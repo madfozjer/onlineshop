@@ -64,17 +64,39 @@ export const useProductsList = defineStore("products", {
     getList() {
       return this.list;
     },
-    deleteItem(id) {
+    async deleteItem(id) {
       const existingItem = this.list.find((x) => x.id == id);
 
-      if (existingItem) {
-        this.list = this.list.filter((product) => {
-          return product.id != existingItem.id;
-        });
-        this.analyzeParams();
-        return `Item ${existingItem.name} was deleted from products list`;
-      } else {
+      if (!existingItem) {
         return `Can't find your item`;
+      }
+
+      try {
+        const response = await fetch("/api/deleteproduct", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id: existingItem.id }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.error || `Server responded with status ${response.status}`
+          );
+        }
+
+        const data = await response.json();
+
+        this.list = this.list.filter(
+          (product) => product.id != existingItem.id
+        );
+        this.analyzeParams();
+
+        return true;
+      } catch (error) {
+        return false;
       }
     },
     getId(name) {
@@ -91,9 +113,6 @@ export const useProductsList = defineStore("products", {
             body,
           }
         );
-
-        console.log(response.data);
-        console.log(await this.getAPI("listproducts"));
       } catch (error) {
         console.error(
           "Error inserting document:",
@@ -150,7 +169,7 @@ export const useProductsList = defineStore("products", {
         return null;
       }
     },
-    async deleteAPI(call) {
+    /*async deleteAPI(call) {
       try {
         const response = await fetch(`http://localhost:5000/api/${call}`, {
           method: "DELETE",
@@ -167,7 +186,7 @@ export const useProductsList = defineStore("products", {
         console.error(`Delete call ${call} is unsuccessful.`, error);
         return null;
       }
-    },
+    },*/
     async postShippingData(body) {
       try {
         const response = await axios.post(

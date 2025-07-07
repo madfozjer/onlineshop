@@ -75,7 +75,7 @@ function addItem() {
   newItem.value.tags = newItem.value.tags.split("#");
   newItem.value.tags.shift();
   newItem.value.images = newItem.value.images.split("/");
-
+  products.postProduct(newItem.value);
   log(products.addItem(newItem.value), "purple");
   newItem.value = {
     index: products.getLength(),
@@ -102,7 +102,9 @@ function handleNewCollection() {
 function handleDeleteProduct(deleteItemID) {
   areYouSure(() => {
     // This anonymous function will be executed if the user confirms
-    products.deleteItem(deleteItemID);
+    if (products.deleteItem(deleteItemID))
+      popup(`Item ${deleteItemID} was deleted succesfully`);
+    else popup(`Failed to delete ${deleteItemID} item`);
   }, "Are you sure you want to delete this item?");
 }
 

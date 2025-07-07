@@ -454,7 +454,7 @@ export default function api(app, uri) {
       await client.connect();
       const db = client.db("shop");
       const result = await db.collection("products").insertOne(document);
-
+      console.log(`Product ${document.name} was posted succesfully`);
       res.status(201).json({
         message: "Document inserted successfully",
         insertedId: result.insertedId,
@@ -467,6 +467,44 @@ export default function api(app, uri) {
     }
   });
 
+  app.post("/api/deleteproduct", async (req, res) => {
+    const itemID = req.body.id;
+
+    if (!itemID) {
+      console.log("Error: No ID provided.");
+      return res.status(400).json({ error: "No ID provided" });
+    }
+
+    const client = new MongoClient(uri);
+
+    try {
+      await client.connect();
+      const db = client.db("shop");
+
+      // Use findOneAndDelete to get the deleted document
+      const result = await db
+        .collection("products")
+        .findOneAndDelete({ "body.id": itemID });
+
+      if (result) {
+        // 'value' property holds the deleted document if found
+        console.log(`Product ${itemID} was deleted successfully`);
+        res.status(200).json({
+          // Changed status to 200 OK for successful deletion
+          message: `Product ${result.value.name} was deleted successfully`,
+          deletedItem: result.value, // Include the deleted item's data
+        });
+      } else {
+        console.log(`Product ${itemID} not found for deletion.`);
+        res.status(404).json({ error: "Product not found" }); // 404 if item doesn't exist
+      }
+    } catch (err) {
+      console.error("Failed to delete product", err);
+      res.status(500).json({ error: "Failed to delete document" });
+    } finally {
+      await client.close();
+    }
+  });
   /*app.post("/api/newcollection", async (req, res) => {
     const document = req.body;
 
