@@ -95,8 +95,14 @@ function handleNewCollection() {
   newCollectionItems.value = newCollectionItems.value.split("#");
   newCollectionItems.value.shift();
 
-  collections.addCollection(newCollectionName.value, newCollectionItems.value);
-  popup(`New collection ${newCollectionName.value} was added`);
+  if (
+    !collections.addCollection(
+      newCollectionName.value,
+      newCollectionItems.value
+    )
+  )
+    popup("Error occured during adding new collection");
+  else popup(`New collection ${newCollectionName.value} was added`);
 }
 
 function handleDeleteProduct(deleteItemID) {
@@ -117,24 +123,8 @@ function handleDeleteTag(deleteTagName) {
 }
 
 function handleDeleteCollection() {
-  console.log("collections object:", collections);
-
-  console.log(
-    "collections.deleteCollection property:",
-    collections.deleteCollection
-  );
-
-  console.log(
-    "Type of collections.deleteCollection:",
-    typeof collections.deleteCollection
-  );
-
   if (deleteCollectionID.value) {
     areYouSure(() => {
-      console.log(
-        "Inside areYouSure callback. Calling collections.deleteCollection with ID:",
-        deleteCollectionID.value
-      );
       collections.deleteCollection(deleteCollectionID.value);
     }, "Are you sure you want to delete this collection?");
   } else {
@@ -388,7 +378,16 @@ const formFilled = () => {
       <div
         class="mt-8 overflow-y-scroll border-dotted border-2 border-gray-300 max-h-[80%]"
       >
-        <Product :logDesc="log" />
+        <div
+          v-for="item in products.list"
+          class="border-2 rounded-md border-gray-700 shadow-xl m-2 text-center p-2"
+        >
+          <Product
+            :item="item"
+            :logDesc="log"
+            @deleteproduct="handleDeleteProduct(item.id)"
+          />
+        </div>
       </div>
     </div>
     <div

@@ -4,7 +4,9 @@ import router from "@/router/router";
 import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
 import { createPinia } from "pinia";
 import { useProductsList } from "@/stores/products";
+
 import { useCart } from "@/stores/cart";
+import { useCollections } from "@/stores/colections";
 
 const pinia = createPinia();
 const app = createApp(App);
@@ -16,7 +18,9 @@ app.mount("#app");
 const cart = useCart();
 cart.loadFromStorage();
 const products = useProductsList();
-products.initStore();
+await products.initStore();
+const collections = useCollections();
+await collections.initStore();
 
 /*
 try {

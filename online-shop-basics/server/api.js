@@ -307,6 +307,30 @@ export default function api(app, uri) {
     }
   });
 
+  app.get("/api/listcollections", async (req, res) => {
+    const client = new MongoClient(uri);
+
+    try {
+      await client.connect();
+      const db = client.db("shop");
+      const docs = await db.collection("collections").find({}).toArray();
+
+      res.json({
+        documents: docs,
+      });
+    } catch (err) {
+      console.error(
+        `Failed to get documents from ${dbname}.${collection}`,
+        err
+      );
+      res
+        .status(500)
+        .json({ error: `Failed to get documents from ${collection}` });
+    } finally {
+      await client.close();
+    }
+  });
+
   app.get("/api/allorders", async (req, res) => {
     const client = new MongoClient(uri);
     await client.connect();
@@ -440,6 +464,74 @@ export default function api(app, uri) {
     }
   });
 
+  app.post("/api/newcollection", async (req, res) => {
+    const document = req.body;
+
+    if (!document) {
+      console.log("Error: No document provided.");
+      return res.status(400).json({ error: "No document provided" });
+    }
+
+    const client = new MongoClient(uri);
+
+    try {
+      await client.connect();
+      const db = client.db("shop");
+      const result = await db.collection("collections").insertOne(document);
+      console.log(`Collection ${document.body.name} was posted succesfully`);
+      res.status(201).json({
+        message: "Document inserted successfully",
+        insertedId: result.insertedId,
+      });
+    } catch (err) {
+      console.error("Failed to insert document", err);
+      res.status(500).json({ error: "Failed to insert document" });
+    } finally {
+      await client.close();
+    }
+  });
+
+  app.post("/api/deletecollection", async (req, res) => {
+    console.log("/api/deletecollection was hit");
+
+    const collectionName = req.body.name;
+
+    if (!collectionName) {
+      console.log("Error: No collection name provided.");
+      return res.status(400).json({ error: "No collection name provided" });
+    }
+
+    const client = new MongoClient(uri);
+
+    try {
+      await client.connect();
+      const db = client.db("shop");
+
+      // Use findOneAndDelete to get the deleted document
+      const result = await db
+        .collection("collections")
+        .findOneAndDelete({ "body.name": collectionName });
+
+      if (result) {
+        // 'value' property holds the deleted document if found
+        console.log(`Collection ${collectionName} was deleted successfully`);
+        res.status(200).json({
+          // Changed status to 200 OK for successful deletion
+          message: `Collection ${collectionName} was deleted successfully`,
+          deletedItem: result.value, // Include the deleted item's data
+        });
+      } else {
+        console.log(`Collection ${collectionName} not found for deletion.`);
+        res.status(404).json({ error: "Product not found" }); // 404 if item doesn't exist
+      }
+    } catch (err) {
+      console.error("Failed to delete collection", err);
+      res.status(500).json({ error: "Failed to delete collection" });
+    } finally {
+      await client.close();
+    }
+  });
+
   app.post("/api/newproduct", async (req, res) => {
     const document = req.body;
 
@@ -491,7 +583,7 @@ export default function api(app, uri) {
         console.log(`Product ${itemID} was deleted successfully`);
         res.status(200).json({
           // Changed status to 200 OK for successful deletion
-          message: `Product ${result.value.name} was deleted successfully`,
+          message: `Product ${itemID} was deleted successfully`,
           deletedItem: result.value, // Include the deleted item's data
         });
       } else {
@@ -505,32 +597,6 @@ export default function api(app, uri) {
       await client.close();
     }
   });
-  /*app.post("/api/newcollection", async (req, res) => {
-    const document = req.body;
-
-    if (!document) {
-      console.log("Error: No document provided.");
-      return res.status(400).json({ error: "No document provided" });
-    }
-
-    const client = new MongoClient(uri);
-
-    try {
-      await client.connect();
-      const db = client.db("shop");
-      const result = await db.collection("collections").insertOne(document);
-
-      res.status(201).json({
-        message: "Document inserted successfully",
-        insertedId: result.insertedId,
-      });
-    } catch (err) {
-      console.error("Failed to insert document", err);
-      res.status(500).json({ error: "Failed to insert document" });
-    } finally {
-      await client.close();
-    }
-  });*/
 
   // Expire orders every minute
   setInterval(async () => {

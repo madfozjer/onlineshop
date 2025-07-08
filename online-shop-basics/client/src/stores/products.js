@@ -17,12 +17,42 @@ export const useProductsList = defineStore("products", {
     };
   },
   actions: {
-    initStore() {
-      console.log(this.params);
+    async initStore() {
+      try {
+        const response = await fetch("http://localhost:5000/api/listproducts");
+        const data = await response.json();
+
+        this.list = [];
+
+        const fetchedData = data.documents;
+
+        fetchedData.forEach((item) => {
+          this.list.push(item.body);
+        });
+      } catch (error) {
+        console.error(
+          "Error initializing products store:",
+          error.response ? error.response.data : error.message
+        );
+      }
     },
     async resetStore() {
       this.list = [];
       this.deleteAPI("clearproducts");
+    },
+    async listCollections() {
+      try {
+        const response = await fetch(
+          "http://localhost:5000/api/listcollections"
+        );
+        const data = await response.json();
+        return data.documents;
+      } catch (error) {
+        console.error(
+          "Error listing all collections:",
+          error.response ? error.response.data : error.message
+        );
+      }
     },
     getItem(id) {
       const existingItem = this.list.find((x) => x.id == id);
@@ -44,6 +74,25 @@ export const useProductsList = defineStore("products", {
       this.productNames.push(object.name);
       this.analyzeParams();
       return `Item ${object.name} has been added`;
+    },
+    async postCollection(body) {
+      try {
+        const response = await axios.post(
+          "http://localhost:5000/api/newcollection",
+          {
+            body,
+          }
+        );
+
+        return true;
+      } catch (error) {
+        console.error(
+          "Error inserting document:",
+          error.response ? error.response.data : error.message
+        );
+
+        return false;
+      }
     },
     analyzeParams() {
       this.params = {
@@ -93,8 +142,24 @@ export const useProductsList = defineStore("products", {
           (product) => product.id != existingItem.id
         );
         this.analyzeParams();
+        this.initStore();
 
         return true;
+      } catch (error) {
+        return false;
+      }
+    },
+    async deleteCollection(name) {
+      try {
+        const response = await axios.post("/api/deletecollection", {
+          name: name,
+        });
+
+        if (!response.ok) {
+          return false;
+        } else if (response.ok) {
+          return true;
+        }
       } catch (error) {
         return false;
       }
@@ -169,7 +234,7 @@ export const useProductsList = defineStore("products", {
         return null;
       }
     },
-    /*async deleteAPI(call) {
+    async deleteAPI(call) {
       try {
         const response = await fetch(`http://localhost:5000/api/${call}`, {
           method: "DELETE",
@@ -186,7 +251,7 @@ export const useProductsList = defineStore("products", {
         console.error(`Delete call ${call} is unsuccessful.`, error);
         return null;
       }
-    },*/
+    },
     async postShippingData(body) {
       try {
         const response = await axios.post(
