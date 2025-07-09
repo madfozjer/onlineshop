@@ -331,6 +331,30 @@ export default function api(app, uri) {
     }
   });
 
+  app.get("/api/listtags", async (req, res) => {
+    const client = new MongoClient(uri);
+
+    try {
+      await client.connect();
+      const db = client.db("shop");
+      const docs = await db.collection("tags").find({}).toArray();
+
+      res.json({
+        documents: docs,
+      });
+    } catch (err) {
+      console.error(
+        `Failed to get documents from ${dbname}.${collection}`,
+        err
+      );
+      res
+        .status(500)
+        .json({ error: `Failed to get documents from ${collection}` });
+    } finally {
+      await client.close();
+    }
+  });
+
   app.get("/api/allorders", async (req, res) => {
     const client = new MongoClient(uri);
     await client.connect();
@@ -532,6 +556,45 @@ export default function api(app, uri) {
     }
   });
 
+  app.post("/api/deletetag", async (req, res) => {
+    const tag = req.body.tag;
+
+    if (!tag) {
+      console.log("Error: No collection name provided.");
+      return res.status(400).json({ error: "No collection name provided" });
+    }
+
+    const client = new MongoClient(uri);
+
+    try {
+      await client.connect();
+      const db = client.db("shop");
+
+      // Use findOneAndDelete to get the deleted document
+      const result = await db
+        .collection("tags")
+        .findOneAndDelete({ value: tag });
+
+      if (result) {
+        // 'value' property holds the deleted document if found
+        console.log(`Tag ${tag} was deleted successfully`);
+        res.status(200).json({
+          // Changed status to 200 OK for successful deletion
+          message: `Tag ${tag} was deleted successfully`,
+          deletedItem: result.value, // Include the deleted item's data
+        });
+      } else {
+        console.log(`Tag ${tag} not found for deletion.`);
+        res.status(404).json({ error: "Product not found" }); // 404 if item doesn't exist
+      }
+    } catch (err) {
+      console.error("Failed to delete tag", err);
+      res.status(500).json({ error: "Failed to delete tag" });
+    } finally {
+      await client.close();
+    }
+  });
+
   app.post("/api/newproduct", async (req, res) => {
     const document = req.body;
 
@@ -548,6 +611,33 @@ export default function api(app, uri) {
       const result = await db.collection("products").insertOne(document);
       console.log(`Product ${document.name} was posted succesfully`);
       res.status(201).json({
+        message: "Document inserted successfully",
+        insertedId: result.insertedId,
+      });
+    } catch (err) {
+      console.error("Failed to insert document", err);
+      res.status(500).json({ error: "Failed to insert document" });
+    } finally {
+      await client.close();
+    }
+  });
+
+  app.post("/api/newtag", async (req, res) => {
+    const tag = req.body.tag;
+
+    if (!tag) {
+      console.log("Error: No tag provided.");
+      return res.status(400).json({ error: "No tag provided" });
+    }
+
+    const client = new MongoClient(uri);
+
+    try {
+      await client.connect();
+      const db = client.db("shop");
+      const result = await db.collection("tags").insertOne({ value: tag });
+      console.log(`${tag} was posted succesfully`);
+      res.status(200).json({
         message: "Document inserted successfully",
         insertedId: result.insertedId,
       });

@@ -6,8 +6,7 @@ import Product from "@/components/DashboardProduct.vue";
 import { RouterLink } from "vue-router";
 import { useCart } from "@/stores/cart";
 import { useCollections } from "@/stores/colections";
-import { useTags } from "@/stores/tags";
-const tags = useTags();
+import CollectionsPopup from "@/components/CollectionsPopup.vue";
 const collections = useCollections();
 const products = useProductsList();
 const cart = useCart();
@@ -17,6 +16,8 @@ console.log(localStorage.getItem("authToken"));
 loggedIn.value = await products.auth();
 const password = ref("");
 const wrongPassword = ref(false);
+
+const collectionPopupBoolean = ref(false);
 
 const newItem = ref({
   index: products.getLength(),
@@ -115,11 +116,15 @@ function handleDeleteProduct(deleteItemID) {
 }
 
 function handleAddNewTag(newTagName) {
-  popup(tags.addTag(newTagName));
+  if (products.postTag(newTagName)) {
+    popup(products.addTag(newTagName));
+  } else {
+    popup(`Error inserting new tag: ${newTagName}`);
+  }
 }
 
 function handleDeleteTag(deleteTagName) {
-  popup(tags.deleteTag(deleteTagName));
+  popup(products.deleteTag(deleteTagName));
 }
 
 function handleDeleteCollection() {
@@ -157,6 +162,10 @@ const formFilled = () => {
 </script>
 
 <template>
+  <CollectionsPopup
+    v-if="collectionPopupBoolean"
+    @close="collectionPopupBoolean = false"
+  />
   <div v-if="loggedIn">
     <RouterLink
       to="/"
@@ -368,7 +377,7 @@ const formFilled = () => {
           clear console
         </button>
         <button
-          @click="log(JSON.stringify(collections.collections), 'lime')"
+          @click="collectionPopupBoolean = true"
           class="ml-4 hover:cursor-pointer"
         >
           get collections

@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import { useCollections } from "./colections";
 import axios from "axios";
 
 export const useProductsList = defineStore("products", {
@@ -14,6 +15,7 @@ export const useProductsList = defineStore("products", {
       },
       productNames: [],
       token: "",
+      collections: useCollections(),
     };
   },
   actions: {
@@ -29,6 +31,30 @@ export const useProductsList = defineStore("products", {
         fetchedData.forEach((item) => {
           this.list.push(item.body);
         });
+
+        this.analyzeParams();
+        this.initTags();
+      } catch (error) {
+        console.error(
+          "Error initializing products store:",
+          error.response ? error.response.data : error.message
+        );
+      }
+    },
+    async initTags() {
+      try {
+        const response = await fetch("http://localhost:5000/api/listtags");
+        const data = await response.json();
+
+        this.tags = [];
+
+        const fetchedData = data.documents;
+
+        fetchedData.forEach((item) => {
+          this.tags.push(item.value);
+        });
+
+        console.log(this.tags);
       } catch (error) {
         console.error(
           "Error initializing products store:",
@@ -37,7 +63,10 @@ export const useProductsList = defineStore("products", {
       }
     },
     async resetStore() {
+      localStorage.clear();
       this.list = [];
+      this.tags = [];
+      this.collections.collections = [];
       this.deleteAPI("clearproducts");
     },
     async listCollections() {
@@ -63,9 +92,6 @@ export const useProductsList = defineStore("products", {
         return 404;
       }
     },
-    syncWithDB() {
-      //get data from db. db state priority.
-    },
     addItem(object) {
       this.list.push(object);
       object.tags.forEach((tag) => {
@@ -74,6 +100,35 @@ export const useProductsList = defineStore("products", {
       this.productNames.push(object.name);
       this.analyzeParams();
       return `Item ${object.name} has been added`;
+    },
+    addTag(tag) {
+      if (this.postTag(tag)) {
+        this.list.push(tag);
+        return `${tag} was succesfully added`;
+      } else return `Error occured during addition of ${tag}`;
+    },
+    deleteTag(toDelete) {
+      if (this.tags.find((tag) => tag === toDelete)) {
+        if (this.removeTagFromDB(toDelete)) {
+          this.list = this.list.filter((tag) => tag !== toDelete);
+          return `${toDelete} was succesfully deleted`;
+        } else return `${toDelete} was not found`;
+      }
+    },
+    async removeTagFromDB(tag) {
+      try {
+        const response = await axios.post("/api/deletetag", {
+          tag: tag,
+        });
+
+        if (!response.ok) {
+          return false;
+        } else if (response.ok) {
+          return true;
+        }
+      } catch (error) {
+        return false;
+      }
     },
     async postCollection(body) {
       try {
@@ -169,6 +224,21 @@ export const useProductsList = defineStore("products", {
 
       if (existingItem) return existingItem.id;
       else return "no item found";
+    },
+    async postTag(tag) {
+      try {
+        const response = await axios.post("http://localhost:5000/api/newtag", {
+          tag: tag,
+        });
+
+        if (response.status == 200) return true;
+        else false;
+      } catch (error) {
+        console.error(
+          "Error inserting document:",
+          error.response ? error.response.data : error.message
+        );
+      }
     },
     async postProduct(body) {
       try {

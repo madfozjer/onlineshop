@@ -16,8 +16,6 @@ export const useCollections = defineStore("collections", {
       fetchedData.forEach((item) => {
         this.collections.push(item.body);
       });
-
-      console.log(this.collections);
     },
     addCollection(name, items) {
       if (!this.products.postCollection({ name: name, items: items })) {
