@@ -86,6 +86,8 @@ export default function api(app, uri) {
         details:
           process.env.NODE_ENV === "development" ? error.message : undefined,
       });
+    } finally {
+      await client.close();
     }
   });
 
@@ -134,6 +136,8 @@ export default function api(app, uri) {
       res.status(500).json({
         error: "Failed to resolve order",
       });
+    } finally {
+      await client.close();
     }
   });
 
@@ -280,6 +284,8 @@ export default function api(app, uri) {
     } catch (err) {
       console.error("Error updating order with shipping details:", err);
       return res.status(500).json({ error: "Failed to update order." });
+    } finally {
+      await client.close();
     }
   });
 
@@ -363,6 +369,7 @@ export default function api(app, uri) {
     const allOrders = await ordersCollection.find({}).toArray();
 
     res.status(200).json(allOrders);
+    await client.close();
   });
 
   app.post("/api/orders", async (req, res) => {
@@ -410,17 +417,19 @@ export default function api(app, uri) {
     } catch (error) {
       console.error("Error creating order:", error);
       res.status(500).json({ error: "Failed to create order." });
+    } finally {
+      await client.close();
     }
   });
 
   async function deleteOrder(orderId) {
+    const client = new MongoClient(uri);
     try {
       if (!orderId) {
         console.log("Error: Order ID is missing.");
         return { success: false, message: "Order ID is missing." };
       }
 
-      const client = new MongoClient(uri);
       await client.connect();
       const db = client.db("shop");
 
@@ -451,6 +460,8 @@ export default function api(app, uri) {
           error.message ||
           "An unknown error occurred during database operation.",
       };
+    } finally {
+      await client.close();
     }
   }
 
@@ -490,6 +501,7 @@ export default function api(app, uri) {
 
   app.post("/api/newcollection", async (req, res) => {
     const document = req.body;
+    console.log(document);
 
     if (!document) {
       console.log("Error: No document provided.");
@@ -609,7 +621,7 @@ export default function api(app, uri) {
       await client.connect();
       const db = client.db("shop");
       const result = await db.collection("products").insertOne(document);
-      console.log(`Product ${document.name} was posted succesfully`);
+      console.log(`Product ${document.body.name} was posted succesfully`);
       res.status(201).json({
         message: "Document inserted successfully",
         insertedId: result.insertedId,
@@ -785,6 +797,8 @@ export default function api(app, uri) {
         error: "Failed to capture PayPal order on backend.",
         details: error.message,
       });
+    } finally {
+      await client.close();
     }
   });
 
@@ -892,17 +906,18 @@ export default function api(app, uri) {
     return orderData;
   }
 
-  app.delete("/api/clearproducts", async (req, res) => {
+  app.delete("/api/clear", async (req, res) => {
     const client = new MongoClient(uri);
     const db = client.db("shop");
 
     try {
       await client.connect();
-      const result = await db.collection("products").deleteMany({});
+      await db.collection("products").deleteMany({});
+      await db.collection("collections").deleteMany({});
+      await db.collection("tags").deleteMany({});
 
       res.json({
-        message: `All documents deleted from products🧨`,
-        deletedCount: result.deletedCount,
+        message: `All documents deleted🧨`,
       });
     } catch (err) {
       console.error("Error deleting documents", err);

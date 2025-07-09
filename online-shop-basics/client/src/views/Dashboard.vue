@@ -10,6 +10,7 @@ import CollectionsPopup from "@/components/CollectionsPopup.vue";
 const collections = useCollections();
 const products = useProductsList();
 const cart = useCart();
+await products.initStore();
 
 const loggedIn = ref(false);
 console.log(localStorage.getItem("authToken"));
@@ -267,7 +268,7 @@ const formFilled = () => {
             <input
               type="submit"
               v-if="findIdName != ''"
-              @click.prevent="outputID = products.getId(findIdName)"
+              @click.prevent="outputID = products.getId(findIdName.trimEnd())"
               value="submit"
               class="border-2 border-gray-800 p-1"
             /><br />

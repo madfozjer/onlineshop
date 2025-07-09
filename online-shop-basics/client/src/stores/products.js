@@ -63,11 +63,11 @@ export const useProductsList = defineStore("products", {
       }
     },
     async resetStore() {
-      localStorage.clear();
       this.list = [];
       this.tags = [];
       this.collections.collections = [];
-      this.deleteAPI("clearproducts");
+      localStorage.clear();
+      this.deleteAPI("clear");
     },
     async listCollections() {
       try {
@@ -103,7 +103,7 @@ export const useProductsList = defineStore("products", {
     },
     addTag(tag) {
       if (this.postTag(tag)) {
-        this.list.push(tag);
+        this.tags.push(tag);
         return `${tag} was succesfully added`;
       } else return `Error occured during addition of ${tag}`;
     },

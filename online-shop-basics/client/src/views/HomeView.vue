@@ -1,7 +1,7 @@
 <script setup>
 import Product from "@/components/Product.vue";
 import Navigation from "@/components/Navigation.vue";
-import { ref, watch } from "vue";
+import { ref } from "vue";
 import router from "@/router/router";
 import { useProductsList } from "@/stores/products";
 import { useCollections } from "@/stores/colections";
@@ -9,7 +9,8 @@ import { useCollections } from "@/stores/colections";
 const products = useProductsList();
 const collectionsStore = useCollections();
 const collections = collectionsStore.collections;
-const list = products.getList();
+await products.initStore();
+const list = products.list;
 
 const listEmpty = ref(false);
 

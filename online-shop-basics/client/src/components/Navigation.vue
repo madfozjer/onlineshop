@@ -60,19 +60,19 @@
 </template>
 
 <script setup>
-import { watch, defineEmits, ref, defineProps, computed } from "vue";
-import Cart from "./Cart.vue";
-import router from "@/router/router";
-import { useProductsList } from "@/stores/products";
-const tagList = useProductsList();
-const accesingSearch = ref(false);
-
-const tags = tagList.tags;
-
 const props = defineProps({
   res: Array,
   homeAccess: Boolean,
 });
+
+import { watch, defineEmits, ref, defineProps, computed } from "vue";
+import Cart from "./Cart.vue";
+import router from "@/router/router";
+import { useProductsList } from "@/stores/products";
+const products = useProductsList();
+const accesingSearch = ref(false);
+await products.initTags();
+const tags = products.tags;
 
 const highlight = computed(() => (full) => {
   const searchText = search.value;

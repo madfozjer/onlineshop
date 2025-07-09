@@ -14,7 +14,10 @@
           <br />
           <div class="flex gap-2 border-t-2 border-gray-800 py-2 mb-1">
             <div v-for="id in collection.items">
-              <DashboardProduct :item="products.getItem(id)" />
+              <DashboardProduct
+                :item="products.getItem(id)"
+                class="border-2 border-dotted border-gray-600 opacity-85 p-2"
+              />
             </div>
           </div>
         </div>

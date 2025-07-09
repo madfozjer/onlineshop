@@ -17,8 +17,7 @@ app.use(router);
 app.mount("#app");
 const cart = useCart();
 cart.loadFromStorage();
-const products = useProductsList();
-await products.initStore();
+
 const collections = useCollections();
 await collections.initStore();
 
