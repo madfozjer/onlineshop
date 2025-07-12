@@ -1,7 +1,6 @@
 <script setup>
 useProductsList;
 import { useProductsList } from "@/stores/products";
-import PayPalButton from "@/components/PayPalButton.vue";
 import { useCart } from "@/stores/cart";
 import { useRoute } from "vue-router";
 const products = useProductsList();
@@ -19,6 +18,7 @@ const product = products.getItem(id) != 404 ? products.getItem(id) : undefined;
 <template>
   <Navigation />
   <div v-if="product != undefined">
+    <!-- Code later checks if there more than one image or image number 2, 3 etc., if so display. If not, use image number 0. -->
     <div class="m-6 flex justify-center items-center" v-if="product != 404">
       <div id="images" class="flex border-2">
         <img
@@ -105,5 +105,3 @@ const product = products.getItem(id) != 404 ? products.getItem(id) : undefined;
     <div class="text-center text-4xl">Oops, we couldn't find your product.</div>
   </div>
 </template>
-
-<!-- images v-if'ing -->

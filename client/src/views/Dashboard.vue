@@ -1,6 +1,6 @@
 <script setup>
 import { useProductsList } from "@/stores/products";
-import { nanoid } from "nanoid";
+import { nanoid } from "nanoid"; // Little uids
 import { ref, watch } from "vue";
 import Product from "@/components/DashboardProduct.vue";
 import { RouterLink } from "vue-router";
@@ -13,7 +13,6 @@ const cart = useCart();
 await products.initStore();
 
 const loggedIn = ref(false);
-console.log(localStorage.getItem("authToken"));
 loggedIn.value = await products.auth();
 const password = ref("");
 const wrongPassword = ref(false);
@@ -26,13 +25,13 @@ const newItem = ref({
   name: "",
   paramaters: [],
   tags: [],
-  price: 60.0,
+  price: 20.0, // Standard price that appears
   images: [],
   description: ``,
 });
 
 async function login() {
-  const res = await products.login(password.value);
+  const res = await products.login(password.value); // Awaiting login to enter dashboard. If not, don't allow
 
   if (res != 200) wrongPassword.value = true;
   else {
@@ -41,6 +40,7 @@ async function login() {
   }
 }
 
+// All the data for forms
 const deleteItemID = ref("");
 const findIdName = ref("");
 const outputID = ref("");
@@ -53,17 +53,21 @@ const deleteCollectionID = ref("");
 const newTagName = ref("");
 const deleteTagName = ref("");
 
+// Debug log data
 const debug = ref([]);
 
+// Custom logging to custom console on screen. REMOVE IT LATER FOR NEWER UIs
 function log(text, color) {
   debug.value.push("<span style='color:" + color + "'>" + text + "</span>");
   debug.value = [...debug.value];
 }
 
+// Custom alert for iternal functions itc.
 function popup(text) {
   alert(text);
 }
 
+// Automatically clear debug when too many data
 watch(debug, (arr) => {
   if (arr.length > 5) clearDebug();
 });
@@ -72,6 +76,7 @@ function clearDebug() {
   debug.value = [];
 }
 
+// Adding data, spliting it by 'splitters', logging data and then clearing it to standard values
 function addItem() {
   newItem.value.paramaters = newItem.value.paramaters.split("/");
   newItem.value.tags = newItem.value.tags.split("#");
@@ -85,7 +90,7 @@ function addItem() {
     name: "",
     paramaters: [],
     tags: [],
-    price: 0.0,
+    price: 20.0, // It is not synced with data on top
     images: [],
     description: ``,
   };
@@ -118,6 +123,7 @@ function handleDeleteProduct(deleteItemID) {
 
 function handleAddNewTag(newTagName) {
   if (products.postTag(newTagName)) {
+    // If server answers when posting tag go on
     popup(products.addTag(newTagName));
   } else {
     popup(`Error inserting new tag: ${newTagName}`);
@@ -139,6 +145,7 @@ function handleDeleteCollection() {
 }
 
 function areYouSure(callback, message = "Are you sure?") {
+  // If users answers OK - go on, if not just cancel action
   if (typeof callback !== "function") {
     console.error("areYouSure: The first argument must be a function.");
     return;
@@ -146,12 +153,11 @@ function areYouSure(callback, message = "Are you sure?") {
 
   if (confirm(message)) {
     callback();
-  } else {
-    console.log("Action cancelled by user.");
   }
 }
 
 const formFilled = () => {
+  // Check if form is filled
   if (
     newItem.value.name != "" &&
     newItem.value.price != 0.0 &&

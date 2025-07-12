@@ -6,6 +6,7 @@
       height="295px"
       class="rounded-md"
     />
+    <!-- Image[0] or standard image using here -->
     {{ name }}<br />
     <div class="font-semibold">
       <template v-for="(item, index) in props.parameters">
@@ -36,8 +37,9 @@ const props = defineProps({
   price: Number,
   image: String,
   id: String,
-});
+}); // Receiving data and then converting it to local copy of it down
 
+// there
 const product = {
   name: props.name,
   parameters: props.parameters,

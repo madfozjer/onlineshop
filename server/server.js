@@ -1,4 +1,3 @@
-// server/server.js
 import express from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
@@ -15,17 +14,10 @@ const app = express();
 app.use(cors());
 app.use(express.json()); // to parse JSON bodies
 
-const secretKey = process.env.JWT_SECRET;
-const saltRounds = 10;
-
-// MongoDB connection
-mongoose
-  .connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log("✅ Connected to MongoDB"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 
 api(app, process.env.MONGODB_URI);
 

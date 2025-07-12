@@ -1,12 +1,12 @@
-import { MongoClient, UUID } from "mongodb";
-import bcrypt, { hash } from "bcrypt";
-import dotenv from "dotenv";
-import { v4 as uuidv4 } from "uuid";
-import jwt from "jsonwebtoken";
+import { MongoClient } from "mongodb"; // Database
+import bcrypt from "bcrypt"; // Encryption
+import dotenv from "dotenv"; // For getting data from .env
+import { v4 as uuidv4 } from "uuid"; // For short uids
+import jwt from "jsonwebtoken"; // For staying logged in
 
 dotenv.config();
 
-const userPassword = await hashPassword(process.env.DH_PASSWORD);
+const userPassword = await hashPassword(process.env.DH_PASSWORD); // Hashing password for comparasion with encrypted input password
 
 async function hashPassword(password) {
   return new Promise((resolve, reject) => {
@@ -32,6 +32,7 @@ export default function api(app, uri) {
         const userId = uuidv4();
 
         if ((await isMatch) == true) {
+          // Logging in system and sending to user
           const token = jwt.sign({ userId: userId }, process.env.JWT_SECRET, {
             expiresIn: "1h",
           });
@@ -50,6 +51,7 @@ export default function api(app, uri) {
   app.get("/api/checkorder/:orderId", async (req, res) => {
     try {
       const orderId = req.params.orderId;
+
       if (!orderId) {
         console.log("Error: PayPal Order ID is required.");
         return res.status(422).json({ error: "PayPal Order ID is required." });
@@ -83,8 +85,6 @@ export default function api(app, uri) {
       console.error("Error checking order:", error);
       res.status(500).json({
         error: "Failed to check order.",
-        details:
-          process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     } finally {
       await client.close();
@@ -146,30 +146,24 @@ export default function api(app, uri) {
     const token = authHeader && authHeader.split(" ")[1];
 
     if (token == null) {
-      console.log("Middleware: No token provided. Sending 401.");
-      // IMPORTANT: return here to stop execution
       return res
         .status(401)
         .json({ message: "Authentication token required." });
     }
 
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-      // Use process.env.JWT_SECRET
       if (err) {
-        console.log("Middleware: Token verification failed:", err.message);
-        // Handle specific JWT errors
         if (err.name === "TokenExpiredError") {
           return res
             .status(401)
             .json({ message: "Authentication token expired." });
         }
-        // For other JWT errors (invalid signature, malformed, etc.)
         return res
           .status(403)
           .json({ message: "Invalid authentication token." });
       }
 
-      next(); // IMPORTANT: Call next() to pass control to the route handler
+      next();
     });
   };
 
@@ -190,6 +184,7 @@ export default function api(app, uri) {
         );
       }
 
+      // Best method to communicate, most complicated and safe.
       const responseData = { data: paypalClientId };
       res.setHeader("Content-Type", "application/json");
       res.send(JSON.stringify(responseData));
@@ -198,8 +193,6 @@ export default function api(app, uri) {
       res.status(500).send(
         JSON.stringify({
           message: "An internal server error occurred.",
-          error:
-            process.env.NODE_ENV === "development" ? error.message : undefined,
         })
       );
     }
@@ -216,25 +209,11 @@ export default function api(app, uri) {
       phoneNumber,
       email,
       notes,
-      deliveryMethod,
     } = req.body.body;
-    console.log(
-      firstName,
-      lastName,
-      address,
-      city,
-      postalCode,
-      country,
-      phoneNumber,
-      email,
-      notes
-    );
 
     const orderId = req.body.body.orderNumber;
-    console.log(orderId);
 
     if (!orderId) {
-      console.log("Error: PayPal Order ID is required.");
       return res.status(422).json({ error: "PayPal Order ID is required." });
     }
 
@@ -244,20 +223,17 @@ export default function api(app, uri) {
     const order = await db.collection("orders").findOne({ orderId: orderId });
 
     if (!order) {
-      console.log("Error: Order not found for this PayPal Order ID.");
       return res
         .status(422)
         .json({ error: "Order not found for this PayPal Order ID." });
     }
 
     if (order.status !== "CREATED") {
-      console.log("Error: Order is not in CREATED status.");
       return res.status(422).json({ error: "Order is not in CREATED status." });
     }
 
     try {
-      // Update order with shipping details
-      const updateResult = await db.collection("orders").updateOne(
+      await db.collection("orders").updateOne(
         { orderId: orderId },
         {
           $set: {
@@ -282,7 +258,6 @@ export default function api(app, uri) {
         orderId: orderId,
       });
     } catch (err) {
-      console.error("Error updating order with shipping details:", err);
       return res.status(500).json({ error: "Failed to update order." });
     } finally {
       await client.close();
@@ -301,10 +276,6 @@ export default function api(app, uri) {
         documents: docs,
       });
     } catch (err) {
-      console.error(
-        `Failed to get documents from ${dbname}.${collection}`,
-        err
-      );
       res
         .status(500)
         .json({ error: `Failed to get documents from ${collection}` });
@@ -376,7 +347,6 @@ export default function api(app, uri) {
     const { cart, deliveryFee } = req.body;
 
     if (!cart) {
-      console.log("Error: Cart is empty or invalid.");
       return res.status(422).json({ error: "Cart is empty or invalid." });
     }
 
@@ -391,28 +361,25 @@ export default function api(app, uri) {
     }
 
     try {
-      // 1. Create PayPal order
       const paypalOrder = await createPayPalOrder(cart, deliveryFee);
       const orderId = paypalOrder.id;
 
-      // 2. Store order in DB using PayPal order ID as the only ID
       const client = new MongoClient(uri);
       await client.connect();
       const db = client.db("shop");
       const dbOrder = {
-        orderId: orderId, // Only use PayPal order ID
+        orderId: orderId,
         status: "CREATED",
         items: cart,
         deliveryFee: deliveryFee,
         totalAmount: totalAmount,
         createdAt: new Date(),
-        expiresAt: new Date(Date.now() + 1 * 60 * 1000), // expires in 1 minute for testing
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000), // Expires in 1h
         expired: false,
       };
       await db.collection("orders").insertOne(dbOrder);
       await client.close();
 
-      // 3. Return PayPal order ID to frontend
       res.status(201).json({ id: orderId });
     } catch (error) {
       console.error("Error creating order:", error);
@@ -466,10 +433,7 @@ export default function api(app, uri) {
   }
 
   app.get("/api/deleteorder/:orderid", async (req, res) => {
-    console.log("Endpoint was hit");
-
     const orderId = req.params.orderid;
-    console.log(`Order ID '${orderId}' deleting requested`);
 
     if (!orderId) {
       return res.status(400).json({
@@ -491,7 +455,6 @@ export default function api(app, uri) {
         });
       }
     } catch (error) {
-      console.error("Error in /api/deleteorder/:orderid endpoint:", error);
       res.status(500).json({
         error: "An unexpected server error occurred.",
         details: error.message,
@@ -504,7 +467,6 @@ export default function api(app, uri) {
     console.log(document);
 
     if (!document) {
-      console.log("Error: No document provided.");
       return res.status(400).json({ error: "No document provided" });
     }
 
@@ -543,22 +505,20 @@ export default function api(app, uri) {
       await client.connect();
       const db = client.db("shop");
 
-      // Use findOneAndDelete to get the deleted document
       const result = await db
         .collection("collections")
         .findOneAndDelete({ "body.name": collectionName });
 
       if (result) {
-        // 'value' property holds the deleted document if found
         console.log(`Collection ${collectionName} was deleted successfully`);
         res.status(200).json({
-          // Changed status to 200 OK for successful deletion
           message: `Collection ${collectionName} was deleted successfully`,
-          deletedItem: result.value, // Include the deleted item's data
+          deletedItem: result.value,
         });
       } else {
+        x;
         console.log(`Collection ${collectionName} not found for deletion.`);
-        res.status(404).json({ error: "Product not found" }); // 404 if item doesn't exist
+        res.status(404).json({ error: "Product not found" });
       }
     } catch (err) {
       console.error("Failed to delete collection", err);
@@ -582,22 +542,19 @@ export default function api(app, uri) {
       await client.connect();
       const db = client.db("shop");
 
-      // Use findOneAndDelete to get the deleted document
       const result = await db
         .collection("tags")
         .findOneAndDelete({ value: tag });
 
       if (result) {
-        // 'value' property holds the deleted document if found
         console.log(`Tag ${tag} was deleted successfully`);
         res.status(200).json({
-          // Changed status to 200 OK for successful deletion
           message: `Tag ${tag} was deleted successfully`,
-          deletedItem: result.value, // Include the deleted item's data
+          deletedItem: result.value,
         });
       } else {
         console.log(`Tag ${tag} not found for deletion.`);
-        res.status(404).json({ error: "Product not found" }); // 404 if item doesn't exist
+        res.status(404).json({ error: "Product not found" });
       }
     } catch (err) {
       console.error("Failed to delete tag", err);
@@ -675,22 +632,19 @@ export default function api(app, uri) {
       await client.connect();
       const db = client.db("shop");
 
-      // Use findOneAndDelete to get the deleted document
       const result = await db
         .collection("products")
         .findOneAndDelete({ "body.id": itemID });
 
       if (result) {
-        // 'value' property holds the deleted document if found
         console.log(`Product ${itemID} was deleted successfully`);
         res.status(200).json({
-          // Changed status to 200 OK for successful deletion
           message: `Product ${itemID} was deleted successfully`,
-          deletedItem: result.value, // Include the deleted item's data
+          deletedItem: result.value,
         });
       } else {
         console.log(`Product ${itemID} not found for deletion.`);
-        res.status(404).json({ error: "Product not found" }); // 404 if item doesn't exist
+        res.status(404).json({ error: "Product not found" });
       }
     } catch (err) {
       console.error("Failed to delete product", err);
@@ -714,7 +668,7 @@ export default function api(app, uri) {
         },
         { $set: { expired: true } }
       );
-      const deleteResult = await db.collection("orders").deleteMany({
+      await db.collection("orders").deleteMany({
         expired: true,
         status: "CREATED",
       });
@@ -734,7 +688,7 @@ export default function api(app, uri) {
     try {
       const auth = Buffer.from(
         `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
-      ).toString("base64");
+      ).toString("base64"); // Authentication data that we send to user
       const response = await fetch(
         `${process.env.PAYPAL_API_BASE}/v1/oauth2/token`,
         {
@@ -768,14 +722,11 @@ export default function api(app, uri) {
         return res.status(422).json({ error: "PayPal Order ID is missing." });
       }
 
-      // 1. Capture PayPal order
       const capture = await capturePayPalOrder(orderId);
 
-      // 2. Update order status in DB using PayPal order ID
       const client = new MongoClient(uri);
       await client.connect();
-      const db = client.db("shop");
-      const updateResult = await db.collection("orders");
+      const db = client.db("shop").collection("orders");
 
       await client.close();
 
@@ -786,7 +737,6 @@ export default function api(app, uri) {
           .json({ error: "Order not found for this PayPal Order ID." });
       }
 
-      // 3. Respond with capture details
       res.status(200).json({
         paypal_id: orderId,
         captureDetails: capture,
@@ -806,6 +756,7 @@ export default function api(app, uri) {
     const accessToken = await generatePayPalAccessToken();
     const url = `${process.env.PAYPAL_API_BASE}/v2/checkout/orders/${orderId}/capture`;
 
+    // Sending back authorization data to user
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -816,10 +767,6 @@ export default function api(app, uri) {
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error(
-        `PayPal Order Capture Error for Order ID ${orderId}:`,
-        errorData
-      );
       throw new Error(
         `Failed to capture PayPal order: ${JSON.stringify(errorData)}`
       );
@@ -830,14 +777,12 @@ export default function api(app, uri) {
   }
 
   async function createPayPalOrder(cartItems, deliveryFee) {
-    cartItems.forEach((item) => {
-      console.log(item.amount, item.price, item.name);
-    });
     const itemsTotal = cartItems.reduce(
       (sum, item) => sum + item.price * item.amount,
       0
     );
 
+    // If delivery fee is not number, make it 0
     const parsedDeliveryFee = typeof deliveryFee === "number" ? deliveryFee : 0;
     const grandTotal = itemsTotal + parsedDeliveryFee;
 
@@ -878,9 +823,9 @@ export default function api(app, uri) {
       ],
 
       application_context: {
-        brand_name: "ONLINE SHOP", // change to your brand name
-        locale: "en-US", // change to your preferred locale
-        shipping_preference: "NO_SHIPPING", // change to SET_PROVIDED_ADDRESS later
+        brand_name: "ONLINE SHOP", // Change to your brand name
+        locale: "en-US", // Change to your preferred locale
+        shipping_preference: "NO_SHIPPING", // Change to SET_PROVIDED_ADDRESS later
         user_action: "PAY_NOW",
       },
     };

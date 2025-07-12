@@ -12,20 +12,21 @@ const collections = collectionsStore.collections;
 await products.initStore();
 const list = products.list;
 
+// Checks if list of products is empty. If yes, It definetly a bug or clear setup and items should not be displayed
 const listEmpty = ref(false);
 
 if (list.length == 0) listEmpty.value = true;
 
+// Refs controling page state
 const packVisibility = ref([]);
 const filterActive = ref(false);
 const sortMenuActive = ref(false);
 const itemsFiltered = ref(false);
 
-var params = ref([]);
-collections.forEach((collection) => {
+var params = ref([]); // Filter search bar params choosed
+collections.forEach(() => {
   packVisibility.value.push(true);
-});
-
+}); // Push collections to frontend and user can control what collection is visible, so this packVisibility variable controls that
 const filteredProducts = ref([]);
 const searchWord = ref("");
 const searchTags = ref([]);

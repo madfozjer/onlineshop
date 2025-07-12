@@ -1,15 +1,18 @@
 <template>
   <div ref="paypalButtonContainer"></div>
+  <!-- Button container -->
 </template>
 
 <script>
-import axios from "axios";
+import axios from "axios"; // For data fetching
 import { useProductsList } from "@/stores/products";
 import { useCart } from "@/stores/cart";
 
 export default {
+  // Exporting data for PayPal API
   name: "PayPalButton",
   props: {
+    // Props for data exporting to API
     productName: {
       type: String,
       required: true,
@@ -19,6 +22,7 @@ export default {
       required: true,
     },
     quantity: {
+      // = amount
       type: Number,
       default: 1,
     },
@@ -29,12 +33,14 @@ export default {
   },
   data() {
     return {
+      // Config of PayPal API
       paypalScriptLoaded: false,
       productsStore: useProductsList(),
       cartStore: useCart(),
     };
   },
   mounted() {
+    // Calling function to load PayPal button
     this.loadPayPalScript();
   },
   methods: {
@@ -45,49 +51,46 @@ export default {
         return;
       }
 
+      // Assign a unique ID to the script element for easier referencing later,
+      // particularly useful if you need to remove or reconfigure the PayPal SDK script dynamically.
       const script = document.createElement("script");
       script.id = "paypal-sdk";
 
       let paypalClientId = null;
       try {
-        // Assuming getAPI is an async method that fetches the client ID
+        // getApi is products standard function for GET HTTP feature
         const response = await this.productsStore.getAPI("getpaypalclientid");
-        paypalClientId = response.data;
+        paypalClientId = response.data; // Receiving data from API
       } catch (error) {
-        console.error("Failed to fetch PayPal client ID:", error);
         alert("Could not load PayPal payment options. Please try again later.");
         return; // Stop execution if client ID can't be fetched
       }
 
       if (!paypalClientId) {
-        console.error("PayPal Client ID is null or undefined.");
+        // Fallback if error
         alert("Could not load PayPal payment options. Please try again later.");
         return;
       }
 
-      script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=EUR`;
+      script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=EUR`; // Dynamic script URL
       script.onload = () => {
+        // If script loaded, change dynamic state of inner state control variables
         this.paypalScriptLoaded = true;
         this.renderPayPalButtons();
       };
       script.onerror = (error) => {
-        console.error("Failed to load PayPal SDK script:", error);
+        // Fallback if error
         alert("Could not load PayPal payment options. Please try again later.");
       };
       document.body.appendChild(script);
+      // Appends the created script element to the <body> of the HTML document.
+      // This makes the PayPal SDK script available and allows it to execute,
+      // enabling PayPal functionalities on the page.
     },
     renderPayPalButtons() {
       if (!window.paypal || !this.$refs.paypalButtonContainer) {
-        console.warn("PayPal SDK not loaded or container not found yet.");
         return;
-      }
-
-      const totalPrice = (this.productPrice * this.quantity).toFixed(2);
-      const cartItem = {
-        name: this.productName,
-        price: this.productPrice.toFixed(2),
-        quantity: this.quantity,
-      };
+      } // Fallback if error
 
       // Clear any existing PayPal buttons before rendering new ones
       while (this.$refs.paypalButtonContainer.firstChild) {
@@ -98,6 +101,7 @@ export default {
 
       window.paypal
         .Buttons({
+          // Buttons of PayPal config
           style: {
             layout: "vertical", // or 'horizontal'
             color: "blue", // 'gold', 'silver', 'blue', 'white', 'black'
@@ -109,42 +113,36 @@ export default {
               const response = await axios.post("/api/orders", {
                 cart: this.cartStore.getCart(),
                 deliveryFee: this.deliveryFee,
-              });
-              console.log("Order created on backend:", response.data);
+              }); // Asking internal API to create order
               const orderData = response.data;
-              console.log(orderData);
               if (orderData.id) {
                 return orderData.id;
               } else {
                 throw new Error("No order ID and DB id returned from backend.");
               }
             } catch (error) {
-              console.error("Error creating PayPal order on backend:", error);
               alert("Could not create PayPal order. Please try again.");
               throw error;
             }
           },
+          // If user approves transaction and no errors on backend
           onApprove: async (data, actions) => {
             try {
               const response = await axios.post(
                 `/api/orders/${data.orderID}/capture`
-              );
+              ); // Capturing created data from internal API
               const orderDetails = response.data;
               this.$emit("payment-success", orderDetails);
-              console.log("Payment details:", orderDetails);
             } catch (error) {
-              console.error("Error capturing PayPal order on backend:", error);
               this.$emit("payment-error", error);
               alert("Could not complete PayPal payment. Please try again.");
             }
-          },
+          }, // Fallbacks if user cancels or error
           onCancel: (data) => {
-            console.log("Payment cancelled:", data);
             this.$emit("payment-cancelled", data);
             alert("PayPal payment was cancelled.");
           },
           onError: (err) => {
-            console.error("PayPal button error:", err);
             alert(
               "An error occurred with the PayPal payment. Please try again."
             );
@@ -152,7 +150,6 @@ export default {
         })
         .render(this.$refs.paypalButtonContainer)
         .catch((error) => {
-          console.error("Failed to render PayPal Buttons:", error);
           alert("Failed to display PayPal buttons. Please check your console.");
         });
     },

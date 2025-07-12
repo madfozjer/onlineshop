@@ -1,12 +1,11 @@
 <script setup>
 import { useProductsList } from "@/stores/products";
-import e from "cors";
 import { ref } from "vue";
 
 const products = useProductsList();
 
 const loggedIn = ref(false);
-const onlyResolved = ref(false);
+const onlyResolved = ref(false); // Controls if show or not only RESOLVED orders
 
 loggedIn.value = await products.auth();
 
@@ -24,7 +23,7 @@ async function login() {
 }
 
 const orders = ref([]);
-orders.value = await products.getAPI("allorders");
+orders.value = await products.getAPI("allorders"); // Get all orders from internal API
 
 async function resolveOrder(id) {
   const response = await products.resolveOrder(id);

@@ -3,8 +3,6 @@ import App from "./src/App.vue";
 import router from "@/router/router";
 import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
 import { createPinia } from "pinia";
-import { useProductsList } from "@/stores/products";
-
 import { useCart } from "@/stores/cart";
 import { useCollections } from "@/stores/colections";
 
@@ -18,20 +16,7 @@ app.mount("#app");
 const cart = useCart();
 cart.loadFromStorage();
 
+// Code to load cart and initialize collections store to properly get data from server
+
 const collections = useCollections();
 await collections.initStore();
-
-/*
-try {
-  const response = await axios.post("http://localhost:5000/api/newproduct", {
-    name: "Vintage Autoboy T-Shirt",
-    price: 40.0,
-  });
-
-  console.log("Document inserted:", response.data);
-} catch (error) {
-  console.error(
-    "Error inserting document:",
-    error.response ? error.response.data : error.message
-  );
-}*/

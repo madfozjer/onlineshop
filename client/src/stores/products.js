@@ -1,7 +1,8 @@
 import { defineStore } from "pinia";
 import { useCollections } from "./colections";
-import axios from "axios";
+import axios from "axios"; // Code uses this sometimes ( for post, delete etc. ) to talk to server
 
+// STORE FOR PRODUCT AND DATABASE MANAGING
 export const useProductsList = defineStore("products", {
   persist: true,
   state: () => {
@@ -21,29 +22,24 @@ export const useProductsList = defineStore("products", {
   actions: {
     async initStore() {
       try {
-        const response = await fetch("http://localhost:5000/api/listproducts");
+        const response = await fetch("http://localhost:5000/api/listproducts"); // Receiving data from inner API database
         const data = await response.json();
 
         this.list = [];
 
-        const fetchedData = data.documents;
+        const fetchedData = data.documents; // Receiving data as document from inner API
 
         fetchedData.forEach((item) => {
           this.list.push(item.body);
-        });
+        }); // Code receives data as document and need to parse this array and push all data to inner store
 
-        this.analyzeParams();
+        this.analyzeParams(); // Going through data and putting data to params ( parameters )
         this.initTags();
-      } catch (error) {
-        console.error(
-          "Error initializing products store:",
-          error.response ? error.response.data : error.message
-        );
-      }
+      } catch (error) {}
     },
     async initTags() {
       try {
-        const response = await fetch("http://localhost:5000/api/listtags");
+        const response = await fetch("http://localhost:5000/api/listtags"); // Receiving data from inner API database, but this data now is search tags under user's search bar
         const data = await response.json();
 
         this.tags = [];
@@ -51,16 +47,10 @@ export const useProductsList = defineStore("products", {
         const fetchedData = data.documents;
 
         fetchedData.forEach((item) => {
+          // Code receives data as document and need to parse this array and push all data to inner store
           this.tags.push(item.value);
         });
-
-        console.log(this.tags);
-      } catch (error) {
-        console.error(
-          "Error initializing products store:",
-          error.response ? error.response.data : error.message
-        );
-      }
+      } catch (error) {}
     },
     async resetStore() {
       this.list = [];
@@ -68,20 +58,16 @@ export const useProductsList = defineStore("products", {
       this.collections.collections = [];
       localStorage.clear();
       this.deleteAPI("clear");
+      // Resets store locally, clears localStorage and calls innerAPI to using standard HTTP DELETE code to clear database
     },
     async listCollections() {
       try {
         const response = await fetch(
           "http://localhost:5000/api/listcollections"
-        );
+        ); // Getting data from inner API to get collection data. It is function because we need to quickly update it when modifying collections.
         const data = await response.json();
         return data.documents;
-      } catch (error) {
-        console.error(
-          "Error listing all collections:",
-          error.response ? error.response.data : error.message
-        );
-      }
+      } catch (error) {}
     },
     getItem(id) {
       const existingItem = this.list.find((x) => x.id == id);
@@ -96,7 +82,7 @@ export const useProductsList = defineStore("products", {
       this.list.push(object);
       object.tags.forEach((tag) => {
         this.tags.push(tag);
-      });
+      }); // Going through all tags of object and then pushing it to store's tags array
       this.productNames.push(object.name);
       this.analyzeParams();
       return `Item ${object.name} has been added`;
@@ -135,17 +121,13 @@ export const useProductsList = defineStore("products", {
         const response = await axios.post(
           "http://localhost:5000/api/newcollection",
           {
-            body,
+            body, // Body has all data about collection, receivs as param when adding collection
           }
         );
 
-        return true;
+        if (response.ok) return true;
+        else return false;
       } catch (error) {
-        console.error(
-          "Error inserting document:",
-          error.response ? error.response.data : error.message
-        );
-
         return false;
       }
     },
@@ -154,9 +136,10 @@ export const useProductsList = defineStore("products", {
         colors: [],
         types: [],
         sizes: [],
-      };
+      }; // Clears parametrs
 
       this.list.forEach((item) => {
+        // Item parameters must be sorted as COLOR/SIZE/TYPE or data will be mismatched
         this.params.colors.push(item.paramaters[0]);
         this.params.sizes.push(item.paramaters[1]);
         this.params.types.push(item.paramaters[2]);
@@ -178,10 +161,7 @@ export const useProductsList = defineStore("products", {
       try {
         const response = await fetch("/api/deleteproduct", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ id: existingItem.id }),
+          body: JSON.stringify({ id: existingItem.id }), // Body sends JSON ( can send just body ) of body of id
         });
 
         if (!response.ok) {
@@ -191,13 +171,12 @@ export const useProductsList = defineStore("products", {
           );
         }
 
-        const data = await response.json();
-
         this.list = this.list.filter(
           (product) => product.id != existingItem.id
-        );
+        ); // Delets item by id
+
         this.analyzeParams();
-        this.initStore();
+        this.initStore(); // Re-initializes store to protect server-user sync
 
         return true;
       } catch (error) {
@@ -208,7 +187,7 @@ export const useProductsList = defineStore("products", {
       try {
         const response = await axios.post("/api/deletecollection", {
           name: name,
-        });
+        }); // Delets collection by name, not id
 
         if (!response.ok) {
           return false;
@@ -223,7 +202,7 @@ export const useProductsList = defineStore("products", {
       const existingItem = this.list.find((x) => x.name === name);
 
       if (existingItem) return existingItem.id;
-      else return "no item found";
+      else return "No item found";
     },
     async postTag(tag) {
       try {
@@ -233,39 +212,24 @@ export const useProductsList = defineStore("products", {
 
         if (response.status == 200) return true;
         else false;
-      } catch (error) {
-        console.error(
-          "Error inserting document:",
-          error.response ? error.response.data : error.message
-        );
-      }
+      } catch (error) {}
     },
     async postProduct(body) {
       try {
-        const response = await axios.post(
-          "http://localhost:5000/api/newproduct",
-          {
-            body,
-          }
-        );
-      } catch (error) {
-        console.error(
-          "Error inserting document:",
-          error.response ? error.response.data : error.message
-        );
-      }
+        await axios.post("http://localhost:5000/api/newproduct", {
+          body,
+        });
+      } catch (error) {}
     },
     async login(input) {
       try {
         const response = await axios.post("http://localhost:5000/api/login", {
           password: input,
-        });
+        }); // Login when on login page, password is configured on server .env file
 
-        console.log(response.data);
-        localStorage.setItem("authToken", response.data.authToken);
+        localStorage.setItem("authToken", response.data.authToken); // Receiving authToken and putting it in localStorage to stay logged in dashboard
         return response.status;
       } catch (error) {
-        console.error("Error hashing password:", error.message);
         return 401;
       }
     },
@@ -275,12 +239,11 @@ export const useProductsList = defineStore("products", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("authToken")}`,
           },
-        });
+        }); // Check with custom header if user authenticated or not
 
         if (response.status == 200) return true;
         else return false;
       } catch (error) {
-        console.log(error);
         return false;
       }
     },
@@ -300,7 +263,6 @@ export const useProductsList = defineStore("products", {
         const result = await response.json();
         return result;
       } catch (error) {
-        console.error(`Get call ${call} is unsuccesful.`, error);
         return null;
       }
     },
@@ -315,10 +277,8 @@ export const useProductsList = defineStore("products", {
         }
 
         const result = await response.json();
-        console.log(result.message);
         return result;
       } catch (error) {
-        console.error(`Delete call ${call} is unsuccessful.`, error);
         return null;
       }
     },
@@ -329,46 +289,28 @@ export const useProductsList = defineStore("products", {
           {
             body,
             contentType: "application/json",
-          }
+          } // contentType is mostly for type-safety on server
         );
 
-        console.log(response.data);
         return response.data;
       } catch (error) {
-        console.error(
-          "Error posting shipping data:",
-          error.response ? error.response.data : error.message
-        );
         return null;
       }
     },
     async resolveOrder(id) {
-      // Assuming this is part of an async function
-      console.log(`Resolving order ${id}..`);
       try {
         const response = await fetch(
           `http://localhost:5000/api/resolveorder/${id}`
         );
 
         if (response.status === 200) {
-          console.log(`Order resolved successfully ${id}`);
-          // If your server sends back data on success, you might want to parse it
-          // const data = await response.json(); // Or response.text()
-          return true; // Or return data; if you want to return the parsed data
+          return true;
         } else {
-          console.log(
-            `Error resolving order ${id}. Status: ${response.status}`
-          );
-          // If your server sends an error message in the response body, parse it
-          const errorData = await response.json().catch(() => response.text()); // Try JSON, then plain text
-          console.error("Server error details:", errorData);
-          return errorData; // Return the error details from the server
+          // If server sends an error message in the response body, parse it
+          const errorData = await response.json().catch(() => response.text());
+          return errorData;
         }
       } catch (error) {
-        console.error(
-          `Network or unexpected error resolving order ${id}:`,
-          error
-        );
         return false; // Indicate failure due to an exception
       }
     },
@@ -379,16 +321,9 @@ export const useProductsList = defineStore("products", {
         );
 
         if (response.status === 200) {
-          console.log(`Order deleted successfully ${id}`);
           return true;
-        } else {
-          console.log(`Error deleting order ${id}. Status: ${response.status}`);
         }
       } catch (error) {
-        console.error(
-          `Network or unexpected error deleting order ${id}:`,
-          error
-        );
         return false; // Indicate failure due to an exception
       }
     },

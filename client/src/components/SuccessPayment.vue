@@ -9,8 +9,9 @@ const isExist = ref(false);
 const orderId = window.location.pathname.split("/").filter(Boolean).pop();
 
 products
-  .getAPI(`checkorder/${orderId}`)
+  .getAPI(`checkorder/${orderId}`) // Calling internal API to check status and If order exists
   .then((response) => {
+    // If status is SHIPPING ( standard fallback for now, CHANGE IT ), payment/order is considered existing
     if (response.status == "SHIPPING") {
       isExist.value = true;
     } else {
@@ -18,9 +19,8 @@ products
     }
   })
   .catch((error) => {
-    console.error("Error checking order status:", error);
     isExist.value = false;
-  });
+  }); // If any errors, fallback to not-exist
 </script>
 <template>
   <div
@@ -32,6 +32,7 @@ products
     <span class="text-2xl font-thin">Thank you for your purchase!</span>
     <span class="text-xl">You will receive an email confirmation shortly.</span>
     <div class="flex justify-center mt-8">
+      <!-- Router link to home page ( '/' ) -->
       <router-link
         to="/"
         class="bg-gradient-to-l from-blue-200/70 to-blue-300/70 border-blue-800 border-1 font-bold text-blue-900 px-4 py-2 rounded"

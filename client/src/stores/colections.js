@@ -10,10 +10,11 @@ export const useCollections = defineStore("collections", {
   },
   actions: {
     async initStore() {
-      const fetchedData = await this.products.listCollections();
+      const fetchedData = await this.products.listCollections(); // Receiving data as document from inner API
       this.collections = [];
 
       fetchedData.forEach((item) => {
+        // Code receives data as document and need to parse this array and push all data to inner store
         this.collections.push(item.body);
       });
     },
@@ -31,7 +32,7 @@ export const useCollections = defineStore("collections", {
           alert(`Collection ${name} was deleted succesfully`);
           this.collections = this.collections.filter(
             (obj) => obj.name !== name
-          );
+          ); // This code deletes collection
         }
       } else {
         alert("Collection was not found");

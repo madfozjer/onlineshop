@@ -19,12 +19,11 @@ const productsList = useProductsList();
 const cart = useCart();
 const itemNames = [];
 cart.getCart().forEach((item) => {
+  // Analyzing cart and putting all names in itemNames for PayPal API
   itemNames.push(item.name);
 });
 
-var paymentStatus, paymentStatusClass;
-
-const delivery = ref("");
+const delivery = ref(""); // Delivery method ref for frontend form
 const shippingData = ref({
   firstName: "",
   lastName: "",
@@ -39,20 +38,12 @@ const shippingData = ref({
   orderNumber: null, // This will be set after payment
 });
 
-const errorMap = [
-  "Invalid number",
-  "Invalid country code",
-  "Too short",
-  "Too long",
-  "Invalid number",
-];
-
 const phoneNumberValid = ref(null);
 const phoneNumberErrorCode = ref(null);
 const phoneNumberNotice = ref(null);
 const validationErrors = ref({});
 const formValidated = ref(false);
-const feedback = ref("");
+const feedback = ref(""); // Data to check for validation or feedback that this validation returns
 
 // Update handleSubmit to provide user feedback
 const handleSubmit = async () => {
@@ -107,29 +98,30 @@ function handlePaymentSuccess(details) {
   paymentStatusClass = "success";
   cart.clearCart();
   console.log(details.captureDetails.id);
-  router.push(`/success/${details.captureDetails.id}`);
+  router.push(`/success/${details.captureDetails.id}`); // Sends to SuccessPage
   shippingData.value.orderNumber = details.captureDetails.id;
   shippingData.value.deliveryMethod = delivery.value;
   productsList.postShippingData(shippingData.value);
 }
 
-function handlePaymentError(error) {
+function handlePaymentError() {
   paymentStatus = "Payment failed. Please try again.";
   paymentStatusClass = "error";
 }
 
-function handlePaymentCancelled(data) {
+function handlePaymentCancelled() {
   paymentStatus = "Payment cancelled by user.";
   paymentStatusClass = "cancelled";
 }
 
-// Prepare country list for dropdown
+// Prepare country list for dropdown. Doesn't work??? FIX
 const countryNames = countries.getNames("en");
 const countryOptions = Object.entries(countryNames).map(([code, name]) => ({
   code,
   name,
 }));
 
+// Checks using yup and validates form
 const checkoutSchema = yup.object({
   firstName: yup
     .string()
@@ -232,6 +224,7 @@ function handleClickOutside(event) {
   }
 }
 
+// Event listener for mousedown, mounting and unmouting it. It is for clicking outside of country selection dropbox.
 onMounted(() => {
   document.addEventListener("mousedown", handleClickOutside);
 });
@@ -267,6 +260,7 @@ onBeforeUnmount(() => {
         <p class="text-xl font-thin">Your delivery method: {{ delivery }}</p>
       </div>
       <div v-if="delivery != ''">
+        <!-- Doesn't appear until delivery method changed. Also novalidate is for html to not validate with standard functions of code. -->
         <form
           class="flex flex-col gap-2"
           @submit.prevent="handleSubmit"
