@@ -15,8 +15,3 @@ app.use(router);
 app.mount("#app");
 const cart = useCart();
 cart.loadFromStorage();
-
-// Code to load cart and initialize collections store to properly get data from server
-
-const collections = useCollections();
-await collections.initStore();

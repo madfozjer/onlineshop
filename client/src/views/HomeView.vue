@@ -11,6 +11,7 @@ const collectionsStore = useCollections();
 const collections = collectionsStore.collections;
 await products.initStore();
 const list = products.list;
+await collectionsStore.initStore();
 
 // Checks if list of products is empty. If yes, It definetly a bug or clear setup and items should not be displayed
 const listEmpty = ref(false);

@@ -276,9 +276,7 @@ export default function api(app, uri) {
         documents: docs,
       });
     } catch (err) {
-      res
-        .status(500)
-        .json({ error: `Failed to get documents from ${collection}` });
+      res.status(500);
     } finally {
       await client.close();
     }
