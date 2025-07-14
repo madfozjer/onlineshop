@@ -58,6 +58,8 @@ Remember to create the shop database and the collections, orders, products, and 
 
 4. Build with npm run build in console or using cmd, in folder where client part (normally /client folder) is located.
 
+If you have any questions, you can contact me via email: dimatsarevskyi@proton.me or using Telegram: @madfoz.
+
 # Important warnings and FAQ
 
 1. Is is recommended to not move any files.
