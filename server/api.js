@@ -7,16 +7,19 @@ import jwt from "jsonwebtoken"; // For staying logged in
 dotenv.config();
 
 const userPassword = await hashPassword(process.env.DH_PASSWORD); // Hashing password for comparasion with encrypted input password
+console.log(process.env);
 
 async function hashPassword(password) {
-  return new Promise((resolve, reject) => {
-    bcrypt.hash(password, 10, function (err, hash) {
-      if (err) {
-        return reject(err);
-      }
-      resolve(hash);
+  if (password) {
+    return new Promise((resolve, reject) => {
+      bcrypt.hash(password, 10, function (err, hash) {
+        if (err) {
+          return reject(err);
+        }
+        resolve(hash);
+      });
     });
-  });
+  }
 }
 
 export default function api(app, uri) {

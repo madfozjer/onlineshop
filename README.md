@@ -9,7 +9,8 @@ System is written in Javascript, primarly Vue.JS using TailwindCSS as CSS, so it
 
 # Required software
 
-- Latest Node.JS version is recommended, but you can try different versions ( our team tested on version v22.11.0 )
+- Latest Node.JS version is recommended, but you can try different one ( our team tested on version v22.11.0 )
+- Latest git version is recommended, but you can try different one ( out team tested on version 2.48.1.windows.1 )
 - MongoDB ( refer to SETUP YOUR MONGODB part of instruction for more details )
 
 # How to setup?
@@ -56,7 +57,9 @@ Refer to the comprehensive MongoDB Atlas Getting Started guide on their official
 You'll need to create an account, set up a free-tier cluster, and obtain your connection string, which will serve as your MONGODB_URI.
 Remember to create the shop database and the collections, orders, products, and tags collections within your Atlas cluster, either through the Atlas UI or programmatically.
 
-4. Build with npm run build in console or using cmd, in folder where client part (normally /client folder) is located.
+4. Run npm install in client and server folder. It will install all required libraries using Node.JS.
+
+5. Build with npm run build in console or using cmd, in folder where client part (normally /client folder) is located.
 
 If you have any questions, you can contact me via email: dimatsarevskyi@proton.me or using Telegram: @madfoz.
 
