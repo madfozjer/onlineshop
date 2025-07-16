@@ -12,4 +12,9 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
+  server: {
+    proxy: {
+      "/api": "http://localhost:2444", // hardcoded backend URL, dont put /api at the end
+    },
+  },
 });

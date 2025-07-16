@@ -31,6 +31,8 @@ System is written in Javascript, primarly Vue.JS using TailwindCSS as CSS, so it
 - PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET -> change it to your data that you will receive when creating PayPal dev account
 - PAYPAL_API_BASE -> there are two separate urls, one for testing, one for production.
 
+In vite.config.js change server.proxy to your backend API url.
+
 ### Setup your MongoDB
 
 1.  Local MongoDB Setup
