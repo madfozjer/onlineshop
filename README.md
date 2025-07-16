@@ -59,11 +59,9 @@ Refer to the comprehensive MongoDB Atlas Getting Started guide on their official
 You'll need to create an account, set up a free-tier cluster, and obtain your connection string, which will serve as your MONGODB_URI.
 Remember to create the shop database and the collections, orders, products, and tags collections within your Atlas cluster, either through the Atlas UI or programmatically.
 
-4. Run npm install in client and server folder. It will install all required libraries using Node.JS.
+4. Run npm run setup. It will install all required libraries using Node.JS.
 
-5. Build with npm run build in console or using cmd, in folder where client part (normally /client folder) is located.
-
-6. Go to /server and run node server.js
+5. Run npm run start to build app and start your website. Don't forget to turn on MongoDB databse before that!
 
 If you have any questions, you can contact me via email: dimatsarevskyi@proton.me or using Telegram: @madfoz.
 
