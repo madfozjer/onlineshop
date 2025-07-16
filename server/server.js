@@ -7,9 +7,6 @@ import api from "./api.js"; // Assuming this file exists and exports an Express 
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 
-// Load .env variables from the root of the project
-dotenv.config();
-
 const app = express();
 
 // Middleware
@@ -44,5 +41,5 @@ if (process.env.NODE_ENV === "production") {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
+  console.log(`🚀 Server is running on ${PORT}`);
 });

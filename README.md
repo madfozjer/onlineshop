@@ -61,6 +61,8 @@ Remember to create the shop database and the collections, orders, products, and 
 
 5. Build with npm run build in console or using cmd, in folder where client part (normally /client folder) is located.
 
+6. Go to /server and run node server.js
+
 If you have any questions, you can contact me via email: dimatsarevskyi@proton.me or using Telegram: @madfoz.
 
 # Important warnings and FAQ
@@ -71,7 +73,7 @@ If you have any questions, you can contact me via email: dimatsarevskyi@proton.m
 
 ? My server 'can't serve' /dist folder or i get 'Cannot GET /' error.
 
-- Check if /dist folder is located under client/dist and if not move it there or change DIST_LOCATION at .env file in your server.
+- If you didn't run 'npm build', do it. If yes, check if /dist folder is located under client/dist and if not move it there or change DIST_LOCATION at .env file in your server.
 
 ## Afterthought
 

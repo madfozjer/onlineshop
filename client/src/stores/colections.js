@@ -10,13 +10,20 @@ export const useCollections = defineStore("collections", {
   },
   actions: {
     async initStore() {
-      const fetchedData = await this.products.listCollections(); // Receiving data as document from inner API
-      this.collections = [];
+      try {
+        const fetchedData = await this.products.listCollections(); // Receiving data as document from inner API
+        this.collections = [];
 
-      fetchedData.forEach((item) => {
-        // Code receives data as document and need to parse this array and push all data to inner store
-        this.collections.push(item.body);
-      });
+        if (fetchedData) {
+          fetchedData.forEach((item) => {
+            // Code receives data as document and need to parse this array and push all data to inner store
+            this.collections.push(item.body);
+          });
+        } else throw new Error("No data received from API");
+      } catch (error) {
+        console.error("Error initializing collections store:", error);
+        alert("Error initializing collections store");
+      }
     },
     addCollection(name, items) {
       if (!this.products.postCollection({ name: name, items: items })) {

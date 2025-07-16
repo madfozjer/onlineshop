@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { useCollections } from "./colections";
 import axios from "axios"; // Code uses this sometimes ( for post, delete etc. ) to talk to server
+import dotenv from "dotenv";
 
 // STORE FOR PRODUCT AND DATABASE MANAGING
 export const useProductsList = defineStore("products", {
@@ -22,7 +23,9 @@ export const useProductsList = defineStore("products", {
   actions: {
     async initStore() {
       try {
-        const response = await fetch("http://localhost:5000/api/listproducts"); // Receiving data from inner API database
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URI}/listproducts`
+        ); // Receiving data from inner API database
         const data = await response.json();
 
         this.list = [];
@@ -39,7 +42,9 @@ export const useProductsList = defineStore("products", {
     },
     async initTags() {
       try {
-        const response = await fetch("http://localhost:5000/api/listtags"); // Receiving data from inner API database, but this data now is search tags under user's search bar
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URI}/listtags`
+        ); // Receiving data from inner API database, but this data now is search tags under user's search bar
         const data = await response.json();
 
         this.tags = [];
@@ -63,8 +68,9 @@ export const useProductsList = defineStore("products", {
     async listCollections() {
       try {
         const response = await fetch(
-          "http://localhost:5000/api/listcollections"
+          `${import.meta.env.VITE_API_URI}/listcollections`
         ); // Getting data from inner API to get collection data. It is function because we need to quickly update it when modifying collections.
+
         const data = await response.json();
         return data.documents;
       } catch (error) {}
@@ -103,9 +109,12 @@ export const useProductsList = defineStore("products", {
     },
     async removeTagFromDB(tag) {
       try {
-        const response = await axios.post("/api/deletetag", {
-          tag: tag,
-        });
+        const response = await axios.post(
+          `${import.meta.env.VITE_API_URI}/api/deletetag`,
+          {
+            tag: tag,
+          }
+        );
 
         if (!response.ok) {
           return false;
@@ -119,7 +128,7 @@ export const useProductsList = defineStore("products", {
     async postCollection(body) {
       try {
         const response = await axios.post(
-          "http://localhost:5000/api/newcollection",
+          `${import.meta.env.VITE_API_URI}/newcollection`,
           {
             body, // Body has all data about collection, receivs as param when adding collection
           }
@@ -159,10 +168,13 @@ export const useProductsList = defineStore("products", {
       }
 
       try {
-        const response = await fetch("/api/deleteproduct", {
-          method: "POST",
-          body: JSON.stringify({ id: existingItem.id }), // Body sends JSON ( can send just body ) of body of id
-        });
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URI}/api/deleteproduct`,
+          {
+            method: "POST",
+            body: JSON.stringify({ id: existingItem.id }), // Body sends JSON ( can send just body ) of body of id
+          }
+        );
 
         if (!response.ok) {
           const errorData = await response.json();
@@ -185,9 +197,12 @@ export const useProductsList = defineStore("products", {
     },
     async deleteCollection(name) {
       try {
-        const response = await axios.post("/api/deletecollection", {
-          name: name,
-        }); // Delets collection by name, not id
+        const response = await axios.post(
+          `${import.meta.env.VITE_API_URI}/api/deletecollection`,
+          {
+            name: name,
+          }
+        ); // Delets collection by name, not id
 
         if (!response.ok) {
           return false;
@@ -206,9 +221,12 @@ export const useProductsList = defineStore("products", {
     },
     async postTag(tag) {
       try {
-        const response = await axios.post("http://localhost:5000/api/newtag", {
-          tag: tag,
-        });
+        const response = await axios.post(
+          `${import.meta.env.VITE_API_URI}/newtag`,
+          {
+            tag: tag,
+          }
+        );
 
         if (response.status == 200) return true;
         else false;
@@ -216,16 +234,19 @@ export const useProductsList = defineStore("products", {
     },
     async postProduct(body) {
       try {
-        await axios.post("http://localhost:5000/api/newproduct", {
+        await axios.post(`${import.meta.env.VITE_API_URI}/newproduct`, {
           body,
         });
       } catch (error) {}
     },
     async login(input) {
       try {
-        const response = await axios.post("http://localhost:5000/api/login", {
-          password: input,
-        }); // Login when on login page, password is configured on server .env file
+        const response = await axios.post(
+          `${import.meta.env.VITE_API_URI}/login`,
+          {
+            password: input,
+          }
+        ); // Login when on login page, password is configured on server .env file
 
         localStorage.setItem("authToken", response.data.authToken); // Receiving authToken and putting it in localStorage to stay logged in dashboard
         return response.status;
@@ -235,11 +256,14 @@ export const useProductsList = defineStore("products", {
     },
     async auth() {
       try {
-        const response = await axios.get("http://localhost:5000/api/auth", {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-        }); // Check with custom header if user authenticated or not
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URI}/auth`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            },
+          }
+        ); // Check with custom header if user authenticated or not
 
         if (response.status == 200) return true;
         else return false;
@@ -250,11 +274,14 @@ export const useProductsList = defineStore("products", {
     async getAPI(call) {
       //listproducts, getpaypalclientid
       try {
-        const response = await fetch(`http://localhost:5000/api/${call}`, {
-          headers: {
-            Accept: "application/json",
-          },
-        });
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URI}/${call}`,
+          {
+            headers: {
+              Accept: "application/json",
+            },
+          }
+        );
 
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
@@ -268,9 +295,12 @@ export const useProductsList = defineStore("products", {
     },
     async deleteAPI(call) {
       try {
-        const response = await fetch(`http://localhost:5000/api/${call}`, {
-          method: "DELETE",
-        });
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URI}/${call}`,
+          {
+            method: "DELETE",
+          }
+        );
 
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
@@ -285,7 +315,7 @@ export const useProductsList = defineStore("products", {
     async postShippingData(body) {
       try {
         const response = await axios.post(
-          "http://localhost:5000/api/shipping",
+          `${import.meta.env.VITE_API_URI}/shipping`,
           {
             body,
             contentType: "application/json",
@@ -300,7 +330,7 @@ export const useProductsList = defineStore("products", {
     async resolveOrder(id) {
       try {
         const response = await fetch(
-          `http://localhost:5000/api/resolveorder/${id}`
+          `${import.meta.env.VITE_API_URI}/resolveorder/${id}`
         );
 
         if (response.status === 200) {
@@ -317,7 +347,7 @@ export const useProductsList = defineStore("products", {
     async deleteOrder(id) {
       try {
         const response = await fetch(
-          `http://localhost:5000/api/deleteorder/${id}`
+          `${import.meta.env.VITE_API_URI}/deleteorder/${id}`
         );
 
         if (response.status === 200) {

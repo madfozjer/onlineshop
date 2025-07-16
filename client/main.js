@@ -5,6 +5,7 @@ import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
 import { createPinia } from "pinia";
 import { useCart } from "@/stores/cart";
 import { useCollections } from "@/stores/colections";
+import dotenv from "dotenv";
 
 const pinia = createPinia();
 const app = createApp(App);
