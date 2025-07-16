@@ -14,7 +14,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/api": "http://localhost:5000", // redirect all /api calls to backend
+      "/api": `${import.meta.env.VITE_API_URI}`, // redirect all /api calls to backend
     },
   },
 });
